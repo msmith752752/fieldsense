@@ -1,3 +1,5 @@
 venv/
 __pycache__/
-*.pyc
+*.pycbuild/ 
+.dart_tool/ 
+frontend/fieldsense_app/build/ 
