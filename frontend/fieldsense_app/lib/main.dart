@@ -1,6 +1,5 @@
 // main.dart
-// FieldSense app entry point.
-// Dark theme, clean and professional for agricultural use.
+// FieldSense — Dark Sky inspired clean agricultural intelligence.
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -27,55 +26,40 @@ class FieldSenseApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: Colors.black,
+        scaffoldBackgroundColor: const Color(0xFF0F1923),
         colorScheme: const ColorScheme.dark(
-          primary: Color(0xFF66BB6A),
-          secondary: Color(0xFF42A5F5),
-          surface: Color(0xFF1C1C1E),
-          error: Color(0xFFEF5350),
+          primary: Color(0xFF4A90D9),
+          secondary: Color(0xFF5BA05E),
+          surface: Color(0xFF1A2535),
+          error: Color(0xFFE05C5C),
         ),
         textTheme: const TextTheme(
           titleLarge: TextStyle(
             color: Colors.white,
-            fontSize: 20,
-            fontWeight: FontWeight.w700,
+            fontSize: 28,
+            fontWeight: FontWeight.w300,
+            letterSpacing: -0.5,
           ),
           titleMedium: TextStyle(
             color: Colors.white,
             fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
-          titleSmall: TextStyle(
-            color: Colors.white,
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-          ),
-          bodyMedium: TextStyle(
-            color: Color(0xFFE5E5EA),
-            fontSize: 14,
-            height: 1.5,
-          ),
-          bodySmall: TextStyle(
-            color: Color(0xFF8E8E93),
-            fontSize: 12,
-          ),
-          labelLarge: TextStyle(
-            color: Color(0xFF8E8E93),
-            fontSize: 13,
             fontWeight: FontWeight.w500,
           ),
-        ),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.black,
-          elevation: 0,
-          titleTextStyle: TextStyle(
-            color: Colors.white,
-            fontSize: 18,
+          titleSmall: TextStyle(
+            color: Color(0xFF78909C),
+            fontSize: 11,
             fontWeight: FontWeight.w600,
+            letterSpacing: 1.2,
           ),
-        ),
-        dividerTheme: const DividerThemeData(
-          color: Color(0xFF2C2C2E),
+          bodyMedium: TextStyle(
+            color: Color(0xFFCFD8DC),
+            fontSize: 14,
+            height: 1.6,
+          ),
+          bodySmall: TextStyle(
+            color: Color(0xFF546E7A),
+            fontSize: 12,
+          ),
         ),
       ),
       home: const HomeScreen(),

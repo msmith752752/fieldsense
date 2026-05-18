@@ -1,5 +1,5 @@
 // moisture_card.dart
-// Displays field moisture state, drought risk, and irrigation signal.
+// Clean Dark Sky inspired moisture display.
 
 import 'package:flutter/material.dart';
 import '../models/field_intelligence.dart';
@@ -12,90 +12,88 @@ class MoistureCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF1C1C1E),
-        borderRadius: BorderRadius.circular(12),
+        color: const Color(0xFF1A2535),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Text('FIELD MOISTURE', style: Theme.of(context).textTheme.titleSmall),
+          const SizedBox(height: 20),
+
+          // Hero moisture state
           Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
             children: [
-              const Icon(Icons.yard_outlined,
-                  color: Color(0xFF66BB6A), size: 18),
-              const SizedBox(width: 6),
               Text(
-                'Field Moisture',
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                    ),
+                moisture.moistureState,
+                style: TextStyle(
+                  color: _getMoistureColor(moisture.moistureState),
+                  fontSize: 32,
+                  fontWeight: FontWeight.w300,
+                  letterSpacing: -0.5,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                '· ${moisture.moistureTrend}',
+                style: const TextStyle(
+                  color: Color(0xFF546E7A),
+                  fontSize: 15,
+                  fontWeight: FontWeight.w400,
+                ),
               ),
             ],
           ),
+
           const SizedBox(height: 16),
+          const Divider(color: Color(0xFF1E2D3D), height: 1),
+          const SizedBox(height: 14),
+
+          // Stats row
           Row(
             children: [
-              Expanded(
-                child: _MoistureStat(
-                  label: 'State',
-                  value: moisture.moistureState,
-                  color: _getMoistureColor(moisture.moistureState),
-                ),
+              _MoistureStat(
+                label: 'Drought Risk',
+                value: moisture.droughtRisk,
+                valueColor: _getDroughtColor(moisture.droughtRisk),
               ),
-              Expanded(
-                child: _MoistureStat(
-                  label: 'Trend',
-                  value: moisture.moistureTrend,
-                  color: _getTrendColor(moisture.moistureTrend),
-                ),
-              ),
-              Expanded(
-                child: _MoistureStat(
-                  label: 'Drought',
-                  value: moisture.droughtRisk,
-                  color: _getDroughtColor(moisture.droughtRisk),
-                ),
+              Container(width: 1, height: 28, color: const Color(0xFF1E2D3D)),
+              _MoistureStat(
+                label: 'Days Dry',
+                value: '${moisture.fieldDryDays}',
+                valueColor: moisture.fieldDryDays >= 7
+                    ? const Color(0xFFD4A843)
+                    : Colors.white,
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          const Divider(color: Color(0xFF2C2C2E), height: 1),
-          const SizedBox(height: 12),
+
+          const SizedBox(height: 16),
+          const Divider(color: Color(0xFF1E2D3D), height: 1),
+          const SizedBox(height: 14),
+
+          // Irrigation signal
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  const Icon(Icons.water_outlined,
-                      size: 14, color: Color(0xFF8E8E93)),
-                  const SizedBox(width: 4),
-                  const Text(
-                    'Irrigation Signal',
-                    style: TextStyle(
-                        fontSize: 12, color: Color(0xFF8E8E93)),
-                  ),
-                ],
+              const Text(
+                'Irrigation Signal',
+                style: TextStyle(color: Color(0xFF78909C), fontSize: 13),
               ),
-              _IrrigationBadge(signal: moisture.irrigationSignal),
+              Text(
+                moisture.irrigationSignal,
+                style: TextStyle(
+                  color: _getIrrigationColor(moisture.irrigationSignal),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ],
           ),
-          if (moisture.fieldDryDays > 0) ...[
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                const Icon(Icons.calendar_today_outlined,
-                    size: 13, color: Color(0xFF8E8E93)),
-                const SizedBox(width: 4),
-                Text(
-                  '${moisture.fieldDryDays} days without meaningful rain',
-                  style: const TextStyle(
-                      fontSize: 12, color: Color(0xFF8E8E93)),
-                ),
-              ],
-            ),
-          ],
         ],
       ),
     );
@@ -103,42 +101,30 @@ class MoistureCard extends StatelessWidget {
 
   Color _getMoistureColor(String state) {
     switch (state.toLowerCase()) {
-      case 'saturated':
-        return const Color(0xFFEF5350);
-      case 'wet':
-        return const Color(0xFF42A5F5);
-      case 'adequate':
-        return const Color(0xFF66BB6A);
-      case 'drying':
-        return const Color(0xFFFFA726);
-      case 'dry':
-        return const Color(0xFFFF7043);
-      default:
-        return const Color(0xFF8E8E93);
-    }
-  }
-
-  Color _getTrendColor(String trend) {
-    switch (trend.toLowerCase()) {
-      case 'increasing':
-        return const Color(0xFF42A5F5);
-      case 'decreasing':
-        return const Color(0xFFFFA726);
-      default:
-        return const Color(0xFF66BB6A);
+      case 'saturated': return const Color(0xFFE05C5C);
+      case 'wet': return const Color(0xFF4A90D9);
+      case 'adequate': return const Color(0xFF5BA05E);
+      case 'drying': return const Color(0xFFD4A843);
+      case 'dry': return const Color(0xFFE07B3C);
+      default: return const Color(0xFF78909C);
     }
   }
 
   Color _getDroughtColor(String risk) {
     switch (risk.toLowerCase()) {
-      case 'high':
-        return const Color(0xFFEF5350);
-      case 'moderate':
-        return const Color(0xFFFFA726);
-      case 'low':
-        return const Color(0xFF66BB6A);
-      default:
-        return const Color(0xFF8E8E93);
+      case 'high': return const Color(0xFFE05C5C);
+      case 'moderate': return const Color(0xFFD4A843);
+      case 'low': return const Color(0xFF5BA05E);
+      default: return const Color(0xFF78909C);
+    }
+  }
+
+  Color _getIrrigationColor(String signal) {
+    switch (signal.toLowerCase()) {
+      case 'likely needed': return const Color(0xFFE05C5C);
+      case 'consider irrigating': return const Color(0xFFD4A843);
+      case 'not recommended': return const Color(0xFF4A90D9);
+      default: return const Color(0xFF78909C);
     }
   }
 }
@@ -146,67 +132,30 @@ class MoistureCard extends StatelessWidget {
 class _MoistureStat extends StatelessWidget {
   final String label;
   final String value;
-  final Color color;
+  final Color valueColor;
 
   const _MoistureStat({
     required this.label,
     required this.value,
-    required this.color,
+    required this.valueColor,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
-            color: color,
+    return Expanded(
+      child: Column(
+        children: [
+          Text(
+            value,
+            style: TextStyle(
+              color: valueColor,
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
+            ),
           ),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 11,
-            color: Color(0xFF8E8E93),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _IrrigationBadge extends StatelessWidget {
-  final String signal;
-
-  const _IrrigationBadge({required this.signal});
-
-  Color _getColor() {
-    switch (signal.toLowerCase()) {
-      case 'likely needed':
-        return const Color(0xFFEF5350);
-      case 'consider irrigating':
-        return const Color(0xFFFFA726);
-      case 'not recommended':
-        return const Color(0xFF42A5F5);
-      default:
-        return const Color(0xFF8E8E93);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final color = _getColor();
-    return Text(
-      signal,
-      style: TextStyle(
-        fontSize: 12,
-        fontWeight: FontWeight.w600,
-        color: color,
+          const SizedBox(height: 3),
+          Text(label, style: const TextStyle(color: Color(0xFF546E7A), fontSize: 11)),
+        ],
       ),
     );
   }

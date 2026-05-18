@@ -1,5 +1,5 @@
 // rainfall_card.dart
-// Displays rainfall history and accumulation data.
+// Clean Dark Sky inspired rainfall history display.
 
 import 'package:flutter/material.dart';
 import '../models/field_intelligence.dart';
@@ -12,10 +12,10 @@ class RainfallCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF1C1C1E),
-        borderRadius: BorderRadius.circular(12),
+        color: const Color(0xFF1A2535),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -23,63 +23,106 @@ class RainfallCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  const Icon(Icons.water_drop_outlined,
-                      color: Color(0xFF42A5F5), size: 18),
-                  const SizedBox(width: 6),
-                  Text(
-                    'Rainfall History',
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                        ),
-                  ),
-                ],
-              ),
-              _TrendBadge(trend: rainfall.trend),
+              Text('RAINFALL', style: Theme.of(context).textTheme.titleSmall),
+              _TrendLabel(trend: rainfall.trend),
             ],
           ),
+          const SizedBox(height: 20),
+
+          // Big 7-day number - Dark Sky style hero stat
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                rainfall.last7Day.toStringAsFixed(2),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 48,
+                  fontWeight: FontWeight.w200,
+                  letterSpacing: -2,
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.only(bottom: 10, left: 4),
+                child: Text(
+                  'in',
+                  style: TextStyle(
+                    color: Color(0xFF78909C),
+                    fontSize: 18,
+                    fontWeight: FontWeight.w300,
+                  ),
+                ),
+              ),
+              const Spacer(),
+              const Padding(
+                padding: EdgeInsets.only(bottom: 8),
+                child: Text(
+                  'past 7 days',
+                  style: TextStyle(
+                    color: Color(0xFF546E7A),
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+            ],
+          ),
+
           const SizedBox(height: 16),
+          const Divider(color: Color(0xFF1E2D3D), height: 1),
+          const SizedBox(height: 16),
+
+          // Secondary stats row
           Row(
             children: [
-              _RainfallStat(
-                  label: '24h', value: rainfall.last1Day, color: const Color(0xFF42A5F5)),
-              _RainfallStat(
-                  label: '3d', value: rainfall.last3Day, color: const Color(0xFF42A5F5)),
-              _RainfallStat(
-                  label: '7d', value: rainfall.last7Day, color: const Color(0xFF1E88E5)),
-              _RainfallStat(
-                  label: '14d', value: rainfall.last14Day, color: const Color(0xFF1565C0)),
+              _SmallStat(label: '24h', value: '${rainfall.last1Day.toStringAsFixed(2)}"'),
+              _Divider(),
+              _SmallStat(label: '3 day', value: '${rainfall.last3Day.toStringAsFixed(2)}"'),
+              _Divider(),
+              _SmallStat(label: '14 day', value: '${rainfall.last14Day.toStringAsFixed(2)}"'),
+              _Divider(),
+              _SmallStat(
+                label: 'Since rain',
+                value: '${rainfall.daysSinceRain}d',
+                valueColor: rainfall.daysSinceRain >= 7
+                    ? const Color(0xFFD4A843)
+                    : const Color(0xFF4A90D9),
+              ),
             ],
           ),
-          const SizedBox(height: 12),
-          const Divider(color: Color(0xFF2C2C2E), height: 1),
-          const SizedBox(height: 12),
+
+          const SizedBox(height: 16),
+          const Divider(color: Color(0xFF1E2D3D), height: 1),
+          const SizedBox(height: 14),
+
+          // Saturation
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _InfoChip(
-                icon: Icons.calendar_today_outlined,
-                label:
-                    '${rainfall.daysSinceRain}d since rain',
+              const Text(
+                'Saturation Risk',
+                style: TextStyle(color: Color(0xFF78909C), fontSize: 13),
               ),
-              _SaturationBadge(risk: rainfall.saturationRisk),
+              _SaturationLabel(risk: rainfall.saturationRisk),
             ],
           ),
+
+          // Mini bar chart
+          if (rainfall.dailyHistory.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            _MiniBarChart(history: rainfall.dailyHistory),
+          ],
         ],
       ),
     );
   }
 }
 
-class _RainfallStat extends StatelessWidget {
+class _SmallStat extends StatelessWidget {
   final String label;
-  final double value;
-  final Color color;
+  final String value;
+  final Color? valueColor;
 
-  const _RainfallStat(
-      {required this.label, required this.value, required this.color});
+  const _SmallStat({required this.label, required this.value, this.valueColor});
 
   @override
   Widget build(BuildContext context) {
@@ -87,117 +130,121 @@ class _RainfallStat extends StatelessWidget {
       child: Column(
         children: [
           Text(
-            '${value.toStringAsFixed(2)}"',
+            value,
             style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: color,
+              color: valueColor ?? Colors.white,
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
             ),
           ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 11,
-              color: Color(0xFF8E8E93),
-            ),
-          ),
+          const SizedBox(height: 3),
+          Text(label, style: const TextStyle(color: Color(0xFF546E7A), fontSize: 11)),
         ],
       ),
     );
   }
 }
 
-class _TrendBadge extends StatelessWidget {
+class _Divider extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(width: 1, height: 28, color: const Color(0xFF1E2D3D));
+  }
+}
+
+class _TrendLabel extends StatelessWidget {
   final String trend;
 
-  const _TrendBadge({required this.trend});
+  const _TrendLabel({required this.trend});
 
   @override
   Widget build(BuildContext context) {
     Color color;
     IconData icon;
-
     switch (trend.toLowerCase()) {
       case 'increasing':
-        color = const Color(0xFF42A5F5);
-        icon = Icons.trending_up;
+        color = const Color(0xFF4A90D9);
+        icon = Icons.trending_up_rounded;
         break;
       case 'decreasing':
-        color = const Color(0xFF66BB6A);
-        icon = Icons.trending_down;
+        color = const Color(0xFF5BA05E);
+        icon = Icons.trending_down_rounded;
         break;
       default:
-        color = const Color(0xFF8E8E93);
-        icon = Icons.trending_flat;
+        color = const Color(0xFF78909C);
+        icon = Icons.trending_flat_rounded;
     }
-
     return Row(
       children: [
         Icon(icon, size: 14, color: color),
-        const SizedBox(width: 3),
-        Text(
-          trend,
-          style: TextStyle(fontSize: 12, color: color),
-        ),
+        const SizedBox(width: 4),
+        Text(trend, style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w500)),
       ],
     );
   }
 }
 
-class _SaturationBadge extends StatelessWidget {
+class _SaturationLabel extends StatelessWidget {
   final String risk;
 
-  const _SaturationBadge({required this.risk});
+  const _SaturationLabel({required this.risk});
 
-  Color _getColor() {
+  Color _color() {
     switch (risk.toLowerCase()) {
-      case 'high':
-        return const Color(0xFFEF5350);
-      case 'moderate':
-        return const Color(0xFFFFA726);
-      case 'low':
-        return const Color(0xFF66BB6A);
-      default:
-        return const Color(0xFF8E8E93);
+      case 'high': return const Color(0xFFE05C5C);
+      case 'moderate': return const Color(0xFFD4A843);
+      case 'low': return const Color(0xFF5BA05E);
+      default: return const Color(0xFF78909C);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final color = _getColor();
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: color.withOpacity(0.4)),
-      ),
-      child: Text(
-        '$risk Saturation',
-        style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.w500),
-      ),
+    return Text(
+      risk,
+      style: TextStyle(color: _color(), fontSize: 13, fontWeight: FontWeight.w600),
     );
   }
 }
 
-class _InfoChip extends StatelessWidget {
-  final IconData icon;
-  final String label;
+class _MiniBarChart extends StatelessWidget {
+  final List<DailyRainfall> history;
 
-  const _InfoChip({required this.icon, required this.label});
+  const _MiniBarChart({required this.history});
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(icon, size: 13, color: const Color(0xFF8E8E93)),
-        const SizedBox(width: 4),
-        Text(
-          label,
-          style: const TextStyle(fontSize: 12, color: Color(0xFF8E8E93)),
-        ),
-      ],
+    final recent = history.length > 10 ? history.sublist(history.length - 10) : history;
+    final maxVal = recent.map((e) => e.inches).reduce((a, b) => a > b ? a : b);
+
+    return SizedBox(
+      height: 36,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: recent.map((day) {
+          final ratio = maxVal > 0 ? day.inches / maxVal : 0.0;
+          final barHeight = 4 + (ratio * 32);
+          return Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 1.5),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Container(
+                    height: barHeight,
+                    decoration: BoxDecoration(
+                      color: day.inches > 0
+                          ? const Color(0xFF4A90D9).withOpacity(0.6 + ratio * 0.4)
+                          : const Color(0xFF1E2D3D),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }).toList(),
+      ),
     );
   }
 }

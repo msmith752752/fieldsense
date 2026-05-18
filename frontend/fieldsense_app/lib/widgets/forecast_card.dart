@@ -1,5 +1,5 @@
 // forecast_card.dart
-// Displays upcoming forecast, rain risk, and dry windows.
+// Clean Dark Sky inspired forecast display.
 
 import 'package:flutter/material.dart';
 import '../models/field_intelligence.dart';
@@ -12,10 +12,10 @@ class ForecastCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF1C1C1E),
-        borderRadius: BorderRadius.circular(12),
+        color: const Color(0xFF1A2535),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -23,91 +23,99 @@ class ForecastCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  const Icon(Icons.cloud_outlined,
-                      color: Color(0xFF9575CD), size: 18),
-                  const SizedBox(width: 6),
-                  Text(
-                    'Forecast',
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                        ),
-                  ),
-                ],
-              ),
-              _RainRiskBadge(risk: forecast.rainRiskLevel),
+              Text('FORECAST', style: Theme.of(context).textTheme.titleSmall),
+              _RiskLabel(risk: forecast.rainRiskLevel),
             ],
           ),
+          const SizedBox(height: 20),
+
+          // Hero stat - 7 day forecast
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                forecast.forecast7Day.toStringAsFixed(2),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 48,
+                  fontWeight: FontWeight.w200,
+                  letterSpacing: -2,
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.only(bottom: 10, left: 4),
+                child: Text(
+                  'in',
+                  style: TextStyle(
+                    color: Color(0xFF78909C),
+                    fontSize: 18,
+                    fontWeight: FontWeight.w300,
+                  ),
+                ),
+              ),
+              const Spacer(),
+              const Padding(
+                padding: EdgeInsets.only(bottom: 8),
+                child: Text(
+                  'next 7 days',
+                  style: TextStyle(color: Color(0xFF546E7A), fontSize: 13),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 16),
+          const Divider(color: Color(0xFF1E2D3D), height: 1),
           const SizedBox(height: 16),
 
-          // Forecast totals
+          // 3-day and heavy rain
           Row(
             children: [
-              Expanded(
-                child: _ForecastStat(
-                  label: '3-Day',
-                  value: '${forecast.forecast3Day.toStringAsFixed(2)}"',
-                  sublabel: 'expected',
-                ),
+              _SmallStat(
+                label: '3 day',
+                value: '${forecast.forecast3Day.toStringAsFixed(2)}"',
               ),
-              Expanded(
-                child: _ForecastStat(
-                  label: '7-Day',
-                  value: '${forecast.forecast7Day.toStringAsFixed(2)}"',
-                  sublabel: 'expected',
-                ),
-              ),
-              Expanded(
-                child: _ForecastStat(
-                  label: 'Heavy Rain',
-                  value: '${forecast.heavyRainDays.length}',
-                  sublabel: 'days at risk',
-                  valueColor: forecast.heavyRainDays.isNotEmpty
-                      ? const Color(0xFFFFA726)
-                      : const Color(0xFF66BB6A),
-                ),
+              Container(width: 1, height: 28, color: const Color(0xFF1E2D3D)),
+              _SmallStat(
+                label: 'Heavy rain days',
+                value: '${forecast.heavyRainDays.length}',
+                valueColor: forecast.heavyRainDays.isNotEmpty
+                    ? const Color(0xFFD4A843)
+                    : const Color(0xFF5BA05E),
               ),
             ],
           ),
 
           // Dry window
           if (forecast.dryWindow.available) ...[
-            const SizedBox(height: 12),
-            const Divider(color: Color(0xFF2C2C2E), height: 1),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              decoration: BoxDecoration(
-                color: const Color(0xFF66BB6A).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                    color: const Color(0xFF66BB6A).withOpacity(0.3)),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.wb_sunny_outlined,
-                      color: Color(0xFF66BB6A), size: 16),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Dry window: ${forecast.dryWindow.startDate} – ${forecast.dryWindow.endDate} (${forecast.dryWindow.durationDays}d)',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF66BB6A),
-                      ),
-                    ),
+            const SizedBox(height: 16),
+            const Divider(color: Color(0xFF1E2D3D), height: 1),
+            const SizedBox(height: 14),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Dry window',
+                  style: TextStyle(color: Color(0xFF78909C), fontSize: 13),
+                ),
+                Text(
+                  '${forecast.dryWindow.startDate} – ${forecast.dryWindow.endDate}',
+                  style: const TextStyle(
+                    color: Color(0xFF5BA05E),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ],
 
-          // Daily forecast mini bars
+          // Daily forecast strip
           if (forecast.dailyForecast.isNotEmpty) ...[
             const SizedBox(height: 16),
-            _DailyForecastRow(days: forecast.dailyForecast.take(7).toList()),
+            const Divider(color: Color(0xFF1E2D3D), height: 1),
+            const SizedBox(height: 16),
+            _DailyStrip(days: forecast.dailyForecast.take(7).toList()),
           ],
         ],
       ),
@@ -115,126 +123,97 @@ class ForecastCard extends StatelessWidget {
   }
 }
 
-class _ForecastStat extends StatelessWidget {
+class _SmallStat extends StatelessWidget {
   final String label;
   final String value;
-  final String sublabel;
   final Color? valueColor;
 
-  const _ForecastStat({
-    required this.label,
-    required this.value,
-    required this.sublabel,
-    this.valueColor,
-  });
+  const _SmallStat({required this.label, required this.value, this.valueColor});
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-            color: valueColor ?? const Color(0xFF9575CD),
+    return Expanded(
+      child: Column(
+        children: [
+          Text(
+            value,
+            style: TextStyle(
+              color: valueColor ?? Colors.white,
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
+            ),
           ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-          ),
-        ),
-        Text(
-          sublabel,
-          style: const TextStyle(
-            fontSize: 10,
-            color: Color(0xFF8E8E93),
-          ),
-        ),
-      ],
+          const SizedBox(height: 3),
+          Text(label, style: const TextStyle(color: Color(0xFF546E7A), fontSize: 11)),
+        ],
+      ),
     );
   }
 }
 
-class _RainRiskBadge extends StatelessWidget {
+class _RiskLabel extends StatelessWidget {
   final String risk;
 
-  const _RainRiskBadge({required this.risk});
+  const _RiskLabel({required this.risk});
 
-  Color _getColor() {
+  Color _color() {
     switch (risk.toLowerCase()) {
-      case 'high':
-        return const Color(0xFFEF5350);
-      case 'moderate':
-        return const Color(0xFFFFA726);
-      case 'low':
-        return const Color(0xFF66BB6A);
-      default:
-        return const Color(0xFF8E8E93);
+      case 'high': return const Color(0xFFE05C5C);
+      case 'moderate': return const Color(0xFFD4A843);
+      case 'low': return const Color(0xFF5BA05E);
+      default: return const Color(0xFF78909C);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final color = _getColor();
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Text(
-        '$risk Rain Risk',
-        style: TextStyle(
-            fontSize: 11, color: color, fontWeight: FontWeight.w500),
-      ),
+    return Text(
+      '$risk Rain Risk',
+      style: TextStyle(color: _color(), fontSize: 12, fontWeight: FontWeight.w600),
     );
   }
 }
 
-class _DailyForecastRow extends StatelessWidget {
+class _DailyStrip extends StatelessWidget {
   final List<DailyForecast> days;
 
-  const _DailyForecastRow({required this.days});
+  const _DailyStrip({required this.days});
 
   @override
   Widget build(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: days.map((day) {
-        final dateShort = day.date.substring(5); // MM-DD
-        final hasRain = day.precipInches > 0.1;
+        final dateShort = day.date.length >= 10 ? day.date.substring(5) : day.date;
+        final hasRain = day.precipProbability > 30;
         return Expanded(
           child: Column(
             children: [
-              Icon(
-                hasRain ? Icons.grain : Icons.wb_sunny_outlined,
-                size: 14,
-                color: hasRain
-                    ? const Color(0xFF42A5F5)
-                    : const Color(0xFF8E8E93),
-              ),
-              const SizedBox(height: 2),
               Text(
                 '${day.precipProbability}%',
                 style: TextStyle(
-                  fontSize: 10,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
                   color: hasRain
-                      ? const Color(0xFF42A5F5)
-                      : const Color(0xFF8E8E93),
+                      ? const Color(0xFF4A90D9)
+                      : const Color(0xFF546E7A),
                 ),
               ),
+              const SizedBox(height: 4),
+              Container(
+                width: 4,
+                height: 4,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: hasRain
+                      ? const Color(0xFF4A90D9)
+                      : const Color(0xFF1E2D3D),
+                ),
+              ),
+              const SizedBox(height: 4),
               Text(
                 dateShort,
-                style: const TextStyle(
-                  fontSize: 9,
-                  color: Color(0xFF636366),
-                ),
+                style: const TextStyle(fontSize: 10, color: Color(0xFF546E7A)),
               ),
             ],
           ),

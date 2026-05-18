@@ -8,7 +8,7 @@ import '../models/field_intelligence.dart';
 class ApiService {
   // For local development, use your machine's IP so the phone can reach it.
   // Change this to your EC2 URL when you deploy.
-  static const String baseUrl = 'http://127.0.0.1:8000';
+  static const String baseUrl = 'http://54.147.143.148:8002';
 
   static Future<FieldIntelligenceResponse> getFieldIntelligence(
       FieldIntelligenceRequest request) async {

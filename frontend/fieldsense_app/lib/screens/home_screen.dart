@@ -1,5 +1,5 @@
 // home_screen.dart
-// Main FieldSense dashboard. Shows field intelligence for saved fields.
+// Clean Dark Sky inspired FieldSense dashboard.
 
 import 'package:flutter/material.dart';
 import '../models/field_intelligence.dart';
@@ -19,14 +19,13 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final List<SavedField> _fields = [];
+  List<SavedField> _fields = [];
   int _selectedFieldIndex = 0;
 
   FieldIntelligenceResponse? _intelligence;
   bool _isLoading = false;
-  String? _errorMessage;
-
   bool _isLoadingFields = true;
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -37,26 +36,21 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _initFields() async {
     final saved = await FieldStorageService.loadFields();
     setState(() {
-      _fields.addAll(saved);
+      _fields = saved;
       _isLoadingFields = false;
     });
-    if (_fields.isNotEmpty) {
-      _loadFieldIntelligence();
-    }
+    if (_fields.isNotEmpty) _loadFieldIntelligence();
   }
 
   Future<void> _loadFieldIntelligence() async {
     if (_fields.isEmpty) return;
-
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
-
     try {
-      final field = _fields[_selectedFieldIndex];
-      final response =
-          await ApiService.getFieldIntelligence(field.toRequest());
+      final response = await ApiService.getFieldIntelligence(
+          _fields[_selectedFieldIndex].toRequest());
       setState(() {
         _intelligence = response;
         _isLoading = false;
@@ -94,23 +88,21 @@ class _HomeScreenState extends State<HomeScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1C1C1E),
-        title: const Text('Remove Field',
-            style: TextStyle(color: Colors.white)),
+        backgroundColor: const Color(0xFF1A2535),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Remove Field', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500)),
         content: Text(
-          'Remove "${field.fieldName}" from FieldSense?',
-          style: const TextStyle(color: Color(0xFF8E8E93)),
+          'Remove "${field.fieldName}"?',
+          style: const TextStyle(color: Color(0xFF78909C)),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel',
-                style: TextStyle(color: Color(0xFF8E8E93))),
+            child: const Text('Cancel', style: TextStyle(color: Color(0xFF78909C))),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Remove',
-                style: TextStyle(color: Color(0xFFEF5350))),
+            child: const Text('Remove', style: TextStyle(color: Color(0xFFE05C5C))),
           ),
         ],
       ),
@@ -139,84 +131,87 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: const Color(0xFF0F1923),
       body: SafeArea(
         child: Column(
           children: [
             _buildHeader(),
-            if (_fields.length > 1) _buildFieldSelector(),
+            if (_fields.length > 1) _buildFieldTabs(),
             Expanded(child: _buildBody()),
           ],
         ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _addField,
-        backgroundColor: const Color(0xFF66BB6A),
+        backgroundColor: const Color(0xFF4A90D9),
+        elevation: 0,
         child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }
 
   Widget _buildHeader() {
-    final field =
-        _fields.isNotEmpty ? _fields[_selectedFieldIndex] : null;
+    final field = _fields.isNotEmpty ? _fields[_selectedFieldIndex] : null;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+      padding: const EdgeInsets.fromLTRB(24, 20, 16, 12),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'FieldSense',
-                style: TextStyle(
-                  color: Color(0xFF66BB6A),
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  letterSpacing: 1.2,
-                ),
-              ),
-              Text(
-                field?.fieldName ?? 'No Fields',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              if (field?.cropType != null)
-                Text(
-                  '${field!.cropType}${field.acreage != null ? ' · ${field.acreage!.toStringAsFixed(0)} ac' : ''}',
-                  style: const TextStyle(
-                    color: Color(0xFF8E8E93),
-                    fontSize: 13,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'FIELDSENSE',
+                  style: TextStyle(
+                    color: Color(0xFF4A90D9),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 2.0,
                   ),
                 ),
-            ],
+                const SizedBox(height: 4),
+                Text(
+                  field?.fieldName ?? 'No Fields',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 26,
+                    fontWeight: FontWeight.w300,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                if (field?.cropType != null)
+                  Text(
+                    '${field!.cropType}${field.acreage != null ? '  ·  ${field.acreage!.toStringAsFixed(0)} acres' : ''}',
+                    style: const TextStyle(
+                      color: Color(0xFF546E7A),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+              ],
+            ),
           ),
           Row(
             children: [
               if (field != null)
                 IconButton(
                   onPressed: () => _deleteField(_selectedFieldIndex),
-                  icon: const Icon(Icons.delete_outline,
-                      color: Color(0xFF3A3A3C), size: 20),
+                  icon: const Icon(Icons.delete_outline, color: Color(0xFF2A3F55), size: 20),
                 ),
               IconButton(
                 onPressed: _isLoading ? null : _loadFieldIntelligence,
-            icon: _isLoading
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Color(0xFF66BB6A),
-                    ),
-                  )
-                : const Icon(Icons.refresh_outlined,
-                    color: Color(0xFF8E8E93)),
+                icon: _isLoading
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 1.5,
+                          color: Color(0xFF4A90D9),
+                        ),
+                      )
+                    : const Icon(Icons.refresh_rounded, color: Color(0xFF2A3F55), size: 22),
               ),
             ],
           ),
@@ -225,12 +220,12 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildFieldSelector() {
+  Widget _buildFieldTabs() {
     return SizedBox(
-      height: 36,
+      height: 34,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 20),
         itemCount: _fields.length,
         itemBuilder: (context, index) {
           final isSelected = index == _selectedFieldIndex;
@@ -238,21 +233,17 @@ class _HomeScreenState extends State<HomeScreen> {
             onTap: () => _selectField(index),
             child: Container(
               margin: const EdgeInsets.only(right: 8),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
               decoration: BoxDecoration(
-                color: isSelected
-                    ? const Color(0xFF66BB6A)
-                    : const Color(0xFF1C1C1E),
-                borderRadius: BorderRadius.circular(18),
+                color: isSelected ? const Color(0xFF4A90D9) : const Color(0xFF1A2535),
+                borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
                 _fields[index].fieldName,
                 style: TextStyle(
-                  color: isSelected ? Colors.white : const Color(0xFF8E8E93),
+                  color: isSelected ? Colors.white : const Color(0xFF78909C),
                   fontSize: 13,
-                  fontWeight:
-                      isSelected ? FontWeight.w600 : FontWeight.normal,
+                  fontWeight: isSelected ? FontWeight.w500 : FontWeight.normal,
                 ),
               ),
             ),
@@ -265,55 +256,54 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildBody() {
     if (_isLoadingFields) {
       return const Center(
-        child: CircularProgressIndicator(color: Color(0xFF66BB6A)),
+        child: CircularProgressIndicator(
+          color: Color(0xFF4A90D9),
+          strokeWidth: 1.5,
+        ),
       );
     }
 
-    if (_fields.isEmpty) {
-      return _buildEmptyState();
-    }
+    if (_fields.isEmpty) return _buildEmptyState();
 
     if (_isLoading && _intelligence == null) {
       return const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CircularProgressIndicator(color: Color(0xFF66BB6A)),
+            CircularProgressIndicator(color: Color(0xFF4A90D9), strokeWidth: 1.5),
             SizedBox(height: 16),
             Text(
-              'Analyzing field conditions...',
-              style: TextStyle(color: Color(0xFF8E8E93)),
+              'Reading field conditions...',
+              style: TextStyle(color: Color(0xFF546E7A), fontSize: 13),
             ),
           ],
         ),
       );
     }
 
-    if (_errorMessage != null && _intelligence == null) {
-      return _buildErrorState();
-    }
-
-    if (_intelligence == null) {
-      return const SizedBox.shrink();
-    }
+    if (_errorMessage != null && _intelligence == null) return _buildErrorState();
+    if (_intelligence == null) return const SizedBox.shrink();
 
     return RefreshIndicator(
       onRefresh: _loadFieldIntelligence,
-      color: const Color(0xFF66BB6A),
-      backgroundColor: const Color(0xFF1C1C1E),
+      color: const Color(0xFF4A90D9),
+      backgroundColor: const Color(0xFF1A2535),
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 100),
         children: [
-          RecommendationCard(
-              recommendation: _intelligence!.recommendation),
-          const SizedBox(height: 12),
+          RecommendationCard(recommendation: _intelligence!.recommendation),
+          const SizedBox(height: 10),
           RainfallCard(rainfall: _intelligence!.rainfall),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           ForecastCard(forecast: _intelligence!.forecast),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           MoistureCard(moisture: _intelligence!.moisture),
-          const SizedBox(height: 12),
-          _buildLocationFooter(),
+          const SizedBox(height: 20),
+          Text(
+            '${_fields[_selectedFieldIndex].latitude.toStringAsFixed(4)}, ${_fields[_selectedFieldIndex].longitude.toStringAsFixed(4)}',
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Color(0xFF1E2D3D), fontSize: 11),
+          ),
         ],
       ),
     );
@@ -324,21 +314,24 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.agriculture_outlined,
-              size: 64, color: Color(0xFF2C2C2E)),
-          const SizedBox(height: 16),
+          const Icon(Icons.agriculture_outlined, size: 52, color: Color(0xFF1E2D3D)),
+          const SizedBox(height: 20),
           const Text(
-            'No fields added yet',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-            ),
+            'No fields added',
+            style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w300),
           ),
           const SizedBox(height: 8),
           const Text(
             'Tap + to add your first field',
-            style: TextStyle(color: Color(0xFF8E8E93)),
+            style: TextStyle(color: Color(0xFF546E7A), fontSize: 14),
+          ),
+          const SizedBox(height: 32),
+          TextButton(
+            onPressed: _addField,
+            child: const Text(
+              'Add Field',
+              style: TextStyle(color: Color(0xFF4A90D9), fontSize: 15),
+            ),
           ),
         ],
       ),
@@ -352,37 +345,20 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.cloud_off_outlined,
-                size: 48, color: Color(0xFF8E8E93)),
+            const Icon(Icons.cloud_off_outlined, size: 40, color: Color(0xFF2A3F55)),
             const SizedBox(height: 16),
             Text(
               _errorMessage!,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: Color(0xFF8E8E93), fontSize: 14),
+              style: const TextStyle(color: Color(0xFF546E7A), fontSize: 14, height: 1.5),
             ),
             const SizedBox(height: 24),
-            ElevatedButton(
+            TextButton(
               onPressed: _loadFieldIntelligence,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF66BB6A),
-              ),
-              child: const Text('Try Again',
-                  style: TextStyle(color: Colors.white)),
+              child: const Text('Try Again', style: TextStyle(color: Color(0xFF4A90D9))),
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildLocationFooter() {
-    final field = _fields[_selectedFieldIndex];
-    return Text(
-      '${field.latitude.toStringAsFixed(4)}, ${field.longitude.toStringAsFixed(4)}',
-      textAlign: TextAlign.center,
-      style: const TextStyle(
-        color: Color(0xFF3A3A3C),
-        fontSize: 11,
       ),
     );
   }
