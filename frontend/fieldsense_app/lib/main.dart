@@ -1,11 +1,13 @@
 // main.dart
-// FieldSense — Dark Sky inspired clean agricultural intelligence.
+// FieldSense — checks if onboarding is complete on launch.
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/home_screen.dart';
+import 'screens/onboarding_screen.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
@@ -13,11 +15,14 @@ void main() {
       statusBarIconBrightness: Brightness.light,
     ),
   );
-  runApp(const FieldSenseApp());
+  final prefs = await SharedPreferences.getInstance();
+  final onboardingComplete = prefs.getBool('onboarding_complete') ?? false;
+  runApp(FieldSenseApp(onboardingComplete: onboardingComplete));
 }
 
 class FieldSenseApp extends StatelessWidget {
-  const FieldSenseApp({super.key});
+  final bool onboardingComplete;
+  const FieldSenseApp({super.key, required this.onboardingComplete});
 
   @override
   Widget build(BuildContext context) {
@@ -62,7 +67,7 @@ class FieldSenseApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const HomeScreen(),
+      home: onboardingComplete ? const HomeScreen() : const OnboardingScreen(),
     );
   }
 }
