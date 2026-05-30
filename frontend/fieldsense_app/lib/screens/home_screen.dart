@@ -26,6 +26,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoading = false;
   bool _isLoadingFields = true;
   String? _errorMessage;
+  DateTime? _lastUpdated;
 
   @override
   void initState() {
@@ -53,6 +54,7 @@ class _HomeScreenState extends State<HomeScreen> {
           _fields[_selectedFieldIndex].toRequest());
       setState(() {
         _intelligence = response;
+        _lastUpdated = DateTime.now();
         _isLoading = false;
       });
     } on ApiException catch (e) {
@@ -117,6 +119,15 @@ class _HomeScreenState extends State<HomeScreen> {
       });
       if (_fields.isNotEmpty) _loadFieldIntelligence();
     }
+  }
+
+  String _formatLastUpdated(DateTime time) {
+    final diff = DateTime.now().difference(time);
+    if (diff.inSeconds < 60) return 'Updated just now';
+    if (diff.inMinutes == 1) return 'Updated 1 min ago';
+    if (diff.inMinutes < 60) return 'Updated ${diff.inMinutes} min ago';
+    if (diff.inHours == 1) return 'Updated 1 hour ago';
+    return 'Updated ${diff.inHours} hours ago';
   }
 
   void _selectField(int index) {
@@ -188,6 +199,17 @@ class _HomeScreenState extends State<HomeScreen> {
                       color: Color(0xFF546E7A),
                       fontSize: 13,
                       fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                if (_lastUpdated != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 3),
+                    child: Text(
+                      _formatLastUpdated(_lastUpdated!),
+                      style: const TextStyle(
+                        color: Color(0xFF2A3F55),
+                        fontSize: 11,
+                      ),
                     ),
                   ),
               ],
