@@ -50,7 +50,7 @@ async def get_field_intelligence(request: FieldIntelligenceRequest):
     # Run intelligence engines
     rainfall = analyze_rainfall(weather_package["history"])
     forecast = analyze_forecast(weather_package["forecast"])
-    moisture = analyze_moisture(rainfall, forecast)
+    moisture = analyze_moisture(rainfall, forecast, request.crop_type)
     recommendation = generate_recommendation(
         rainfall_analysis=rainfall,
         forecast_analysis=forecast,
