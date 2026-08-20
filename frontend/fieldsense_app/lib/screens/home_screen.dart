@@ -1,5 +1,5 @@
 // home_screen.dart
-// Clean Dark Sky inspired FieldSense dashboard.
+// Clean Dark Sky inspired FieldSense dashboard with edit field support.
 
 import 'package:flutter/material.dart';
 import '../models/field_intelligence.dart';
@@ -85,6 +85,21 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _editField(int index) async {
+    final SavedField? updated = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AddFieldScreen(existingField: _fields[index]),
+      ),
+    );
+    if (updated != null) {
+      _fields[index] = updated;
+      await FieldStorageService.saveFields(_fields);
+      setState(() => _intelligence = null);
+      _loadFieldIntelligence();
+    }
+  }
+
   Future<void> _deleteField(int index) async {
     final field = _fields[index];
     final confirm = await showDialog<bool>(
@@ -92,11 +107,10 @@ class _HomeScreenState extends State<HomeScreen> {
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF1A2535),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Remove Field', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500)),
-        content: Text(
-          'Remove "${field.fieldName}"?',
-          style: const TextStyle(color: Color(0xFF78909C)),
-        ),
+        title: const Text('Remove Field',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500)),
+        content: Text('Remove "${field.fieldName}"?',
+            style: const TextStyle(color: Color(0xFF78909C))),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -194,22 +208,26 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 if (field?.cropType != null)
                   Text(
-                    '${field!.cropType}${field.acreage != null ? '  ·  ${field.acreage!.toStringAsFixed(0)} acres' : ''}',
+                    '${field!.cropType}'
+                    '${field.soilType != null ? '  ·  ${field.soilType}' : ''}'
+                    '${field.acreage != null ? '  ·  ${field.acreage!.toStringAsFixed(0)} ac' : ''}',
                     style: const TextStyle(
                       color: Color(0xFF546E7A),
                       fontSize: 13,
                       fontWeight: FontWeight.w400,
                     ),
                   ),
+                if (field?.plantingDate != null)
+                  Text(
+                    'Planted ${field!.plantingDate}',
+                    style: const TextStyle(color: Color(0xFF2A3F55), fontSize: 11),
+                  ),
                 if (_lastUpdated != null)
                   Padding(
                     padding: const EdgeInsets.only(top: 3),
                     child: Text(
                       _formatLastUpdated(_lastUpdated!),
-                      style: const TextStyle(
-                        color: Color(0xFF2A3F55),
-                        fontSize: 11,
-                      ),
+                      style: const TextStyle(color: Color(0xFF2A3F55), fontSize: 11),
                     ),
                   ),
               ],
@@ -219,8 +237,15 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               if (field != null)
                 IconButton(
+                  onPressed: () => _editField(_selectedFieldIndex),
+                  icon: const Icon(Icons.edit_outlined, color: Color(0xFF2A3F55), size: 20),
+                  tooltip: 'Edit field',
+                ),
+              if (field != null)
+                IconButton(
                   onPressed: () => _deleteField(_selectedFieldIndex),
                   icon: const Icon(Icons.delete_outline, color: Color(0xFF2A3F55), size: 20),
+                  tooltip: 'Remove field',
                 ),
               IconButton(
                 onPressed: _isLoading ? null : _loadFieldIntelligence,
@@ -278,10 +303,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildBody() {
     if (_isLoadingFields) {
       return const Center(
-        child: CircularProgressIndicator(
-          color: Color(0xFF4A90D9),
-          strokeWidth: 1.5,
-        ),
+        child: CircularProgressIndicator(color: Color(0xFF4A90D9), strokeWidth: 1.5),
       );
     }
 
@@ -294,10 +316,8 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             CircularProgressIndicator(color: Color(0xFF4A90D9), strokeWidth: 1.5),
             SizedBox(height: 16),
-            Text(
-              'Reading field conditions...',
-              style: TextStyle(color: Color(0xFF546E7A), fontSize: 13),
-            ),
+            Text('Reading field conditions...',
+                style: TextStyle(color: Color(0xFF546E7A), fontSize: 13)),
           ],
         ),
       );
@@ -338,22 +358,16 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           const Icon(Icons.agriculture_outlined, size: 52, color: Color(0xFF1E2D3D)),
           const SizedBox(height: 20),
-          const Text(
-            'No fields added',
-            style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w300),
-          ),
+          const Text('No fields added',
+              style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w300)),
           const SizedBox(height: 8),
-          const Text(
-            'Tap + to add your first field',
-            style: TextStyle(color: Color(0xFF546E7A), fontSize: 14),
-          ),
+          const Text('Tap + to add your first field',
+              style: TextStyle(color: Color(0xFF546E7A), fontSize: 14)),
           const SizedBox(height: 32),
           TextButton(
             onPressed: _addField,
-            child: const Text(
-              'Add Field',
-              style: TextStyle(color: Color(0xFF4A90D9), fontSize: 15),
-            ),
+            child: const Text('Add Field',
+                style: TextStyle(color: Color(0xFF4A90D9), fontSize: 15)),
           ),
         ],
       ),

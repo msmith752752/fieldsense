@@ -7,6 +7,8 @@ class FieldIntelligenceRequest {
   final double longitude;
   final String? cropType;
   final double? acreage;
+  final String? soilType;
+  final String? plantingDate;
 
   FieldIntelligenceRequest({
     required this.fieldName,
@@ -14,6 +16,8 @@ class FieldIntelligenceRequest {
     required this.longitude,
     this.cropType,
     this.acreage,
+    this.soilType,
+    this.plantingDate,
   });
 
   Map<String, dynamic> toJson() => {
@@ -22,6 +26,8 @@ class FieldIntelligenceRequest {
         'longitude': longitude,
         if (cropType != null) 'crop_type': cropType,
         if (acreage != null) 'acreage': acreage,
+        if (soilType != null) 'soil_type': soilType,
+        if (plantingDate != null) 'planting_date': plantingDate,
       };
 }
 
@@ -152,8 +158,7 @@ class HeavyRainDay {
   final double inches;
   final int probability;
 
-  HeavyRainDay(
-      {required this.date, required this.inches, required this.probability});
+  HeavyRainDay({required this.date, required this.inches, required this.probability});
 
   factory HeavyRainDay.fromJson(Map<String, dynamic> json) {
     return HeavyRainDay(
@@ -170,12 +175,7 @@ class DryWindow {
   final String? endDate;
   final int durationDays;
 
-  DryWindow({
-    required this.available,
-    this.startDate,
-    this.endDate,
-    required this.durationDays,
-  });
+  DryWindow({required this.available, this.startDate, this.endDate, required this.durationDays});
 
   factory DryWindow.fromJson(Map<String, dynamic> json) {
     return DryWindow(
@@ -192,11 +192,7 @@ class DailyForecast {
   final double precipInches;
   final int precipProbability;
 
-  DailyForecast({
-    required this.date,
-    required this.precipInches,
-    required this.precipProbability,
-  });
+  DailyForecast({required this.date, required this.precipInches, required this.precipProbability});
 
   factory DailyForecast.fromJson(Map<String, dynamic> json) {
     return DailyForecast(
@@ -279,6 +275,8 @@ class SavedField {
   final double longitude;
   final String? cropType;
   final double? acreage;
+  final String? soilType;
+  final String? plantingDate;
 
   SavedField({
     required this.fieldName,
@@ -286,6 +284,8 @@ class SavedField {
     required this.longitude,
     this.cropType,
     this.acreage,
+    this.soilType,
+    this.plantingDate,
   });
 
   Map<String, dynamic> toJson() => {
@@ -294,6 +294,8 @@ class SavedField {
         'longitude': longitude,
         'crop_type': cropType,
         'acreage': acreage,
+        'soil_type': soilType,
+        'planting_date': plantingDate,
       };
 
   factory SavedField.fromJson(Map<String, dynamic> json) {
@@ -303,6 +305,8 @@ class SavedField {
       longitude: json['longitude'].toDouble(),
       cropType: json['crop_type'],
       acreage: json['acreage']?.toDouble(),
+      soilType: json['soil_type'],
+      plantingDate: json['planting_date'],
     );
   }
 
@@ -313,6 +317,28 @@ class SavedField {
       longitude: longitude,
       cropType: cropType,
       acreage: acreage,
+      soilType: soilType,
+      plantingDate: plantingDate,
+    );
+  }
+
+  SavedField copyWith({
+    String? fieldName,
+    double? latitude,
+    double? longitude,
+    String? cropType,
+    double? acreage,
+    String? soilType,
+    String? plantingDate,
+  }) {
+    return SavedField(
+      fieldName: fieldName ?? this.fieldName,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      cropType: cropType ?? this.cropType,
+      acreage: acreage ?? this.acreage,
+      soilType: soilType ?? this.soilType,
+      plantingDate: plantingDate ?? this.plantingDate,
     );
   }
 }

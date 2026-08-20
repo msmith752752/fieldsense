@@ -1,12 +1,14 @@
 // add_field_screen.dart
-// Screen for adding a new field with GPS auto-detect and manual coordinate entry.
+// Add or Edit a field. Supports GPS, soil type, planting date, and full edit mode.
 
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import '../models/field_intelligence.dart';
 
 class AddFieldScreen extends StatefulWidget {
-  const AddFieldScreen({super.key});
+  final SavedField? existingField; // if provided, we're in edit mode
+
+  const AddFieldScreen({super.key, this.existingField});
 
   @override
   State<AddFieldScreen> createState() => _AddFieldScreenState();
@@ -14,18 +16,42 @@ class AddFieldScreen extends StatefulWidget {
 
 class _AddFieldScreenState extends State<AddFieldScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _latController = TextEditingController();
-  final _lonController = TextEditingController();
-  final _acreageController = TextEditingController();
+  late final TextEditingController _nameController;
+  late final TextEditingController _latController;
+  late final TextEditingController _lonController;
+  late final TextEditingController _acreageController;
   String? _selectedCrop;
+  String? _selectedSoilType;
+  DateTime? _plantingDate;
   bool _isLocating = false;
   bool _locationDetected = false;
+
+  bool get _isEditing => widget.existingField != null;
 
   final List<String> _cropTypes = [
     'Corn', 'Soybeans', 'Wheat', 'Cotton', 'Sorghum',
     'Hay', 'Alfalfa', 'Pasture', 'Vegetables', 'Other',
   ];
+
+  final List<String> _soilTypes = [
+    'Sandy', 'Sandy Loam', 'Loam', 'Clay Loam', 'Clay', 'Silt Loam', 'Other',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    final f = widget.existingField;
+    _nameController = TextEditingController(text: f?.fieldName ?? '');
+    _latController = TextEditingController(text: f?.latitude.toString() ?? '');
+    _lonController = TextEditingController(text: f?.longitude.toString() ?? '');
+    _acreageController = TextEditingController(text: f?.acreage?.toString() ?? '');
+    _selectedCrop = f?.cropType;
+    _selectedSoilType = f?.soilType;
+    if (f?.plantingDate != null) {
+      _plantingDate = DateTime.tryParse(f!.plantingDate!);
+    }
+    if (f != null) _locationDetected = true;
+  }
 
   @override
   void dispose() {
@@ -41,19 +67,19 @@ class _AddFieldScreenState extends State<AddFieldScreen> {
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
-        _showLocationError('Location services are disabled. Please enable them in Settings.');
+        _showError('Location services are disabled. Please enable them in Settings.');
         return;
       }
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
-          _showLocationError('Location permission denied.');
+          _showError('Location permission denied.');
           return;
         }
       }
       if (permission == LocationPermission.deniedForever) {
-        _showLocationError('Location permission permanently denied. Please enable it in Settings.');
+        _showError('Location permission permanently denied. Please enable it in Settings.');
         return;
       }
       final position = await Geolocator.getCurrentPosition(
@@ -66,13 +92,13 @@ class _AddFieldScreenState extends State<AddFieldScreen> {
         _isLocating = false;
       });
     } catch (e) {
-      _showLocationError('Could not determine location. Please enter coordinates manually.');
+      _showError('Could not determine location. Please enter coordinates manually.');
     } finally {
       setState(() => _isLocating = false);
     }
   }
 
-  void _showLocationError(String message) {
+  void _showError(String message) {
     setState(() => _isLocating = false);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -82,6 +108,27 @@ class _AddFieldScreenState extends State<AddFieldScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
+  }
+
+  Future<void> _pickPlantingDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _plantingDate ?? DateTime.now(),
+      firstDate: DateTime(DateTime.now().year - 2),
+      lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.dark(
+              primary: Color(0xFF4A90D9),
+              surface: Color(0xFF1A2535),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null) setState(() => _plantingDate = picked);
   }
 
   void _submit() {
@@ -94,6 +141,10 @@ class _AddFieldScreenState extends State<AddFieldScreen> {
         acreage: _acreageController.text.isNotEmpty
             ? double.tryParse(_acreageController.text.trim())
             : null,
+        soilType: _selectedSoilType,
+        plantingDate: _plantingDate != null
+            ? '${_plantingDate!.year}-${_plantingDate!.month.toString().padLeft(2, '0')}-${_plantingDate!.day.toString().padLeft(2, '0')}'
+            : null,
       );
       Navigator.pop(context, field);
     }
@@ -105,8 +156,10 @@ class _AddFieldScreenState extends State<AddFieldScreen> {
       backgroundColor: const Color(0xFF0F1923),
       appBar: AppBar(
         backgroundColor: const Color(0xFF0F1923),
-        title: const Text('Add Field',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w400, fontSize: 18)),
+        title: Text(
+          _isEditing ? 'Edit Field' : 'Add Field',
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w400, fontSize: 18),
+        ),
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
           TextButton(
@@ -123,6 +176,7 @@ class _AddFieldScreenState extends State<AddFieldScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Field Information
               _sectionLabel('FIELD INFORMATION'),
               const SizedBox(height: 8),
               _buildCard([
@@ -133,7 +187,9 @@ class _AddFieldScreenState extends State<AddFieldScreen> {
                   validator: (v) => v == null || v.isEmpty ? 'Field name is required' : null,
                 ),
                 _buildDivider(),
-                _buildDropdown(),
+                _buildCropDropdown(),
+                _buildDivider(),
+                _buildSoilDropdown(),
                 _buildDivider(),
                 _buildTextField(
                   controller: _acreageController,
@@ -143,11 +199,57 @@ class _AddFieldScreenState extends State<AddFieldScreen> {
                 ),
               ]),
 
+              const SizedBox(height: 16),
+
+              // Planting Date
+              _sectionLabel('PLANTING DATE'),
+              const SizedBox(height: 8),
+              GestureDetector(
+                onTap: _pickPlantingDate,
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1A2535),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.calendar_today_outlined,
+                        size: 16,
+                        color: _plantingDate != null
+                            ? const Color(0xFF4A90D9)
+                            : const Color(0xFF546E7A),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        _plantingDate != null
+                            ? '${_plantingDate!.month}/${_plantingDate!.day}/${_plantingDate!.year}'
+                            : 'Select planting date (optional)',
+                        style: TextStyle(
+                          color: _plantingDate != null
+                              ? Colors.white
+                              : const Color(0xFF546E7A),
+                          fontSize: 14,
+                        ),
+                      ),
+                      const Spacer(),
+                      if (_plantingDate != null)
+                        GestureDetector(
+                          onTap: () => setState(() => _plantingDate = null),
+                          child: const Icon(Icons.close, size: 16, color: Color(0xFF546E7A)),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+
               const SizedBox(height: 24),
+
+              // Location
               _sectionLabel('LOCATION'),
               const SizedBox(height: 8),
-
-              // GPS button
               GestureDetector(
                 onTap: _isLocating ? null : _detectLocation,
                 child: Container(
@@ -238,8 +340,10 @@ class _AddFieldScreenState extends State<AddFieldScreen> {
                     elevation: 0,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  child: const Text('Add Field',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                  child: Text(
+                    _isEditing ? 'Save Changes' : 'Add Field',
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                  ),
                 ),
               ),
             ],
@@ -290,7 +394,7 @@ class _AddFieldScreenState extends State<AddFieldScreen> {
     );
   }
 
-  Widget _buildDropdown() {
+  Widget _buildCropDropdown() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: DropdownButtonFormField<String>(
@@ -303,8 +407,28 @@ class _AddFieldScreenState extends State<AddFieldScreen> {
           border: InputBorder.none,
         ),
         hint: const Text('Select crop (optional)', style: TextStyle(color: Color(0xFF2A3F55))),
-        items: _cropTypes.map((crop) => DropdownMenuItem(value: crop, child: Text(crop))).toList(),
+        items: _cropTypes.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
         onChanged: (val) => setState(() => _selectedCrop = val),
+        icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF546E7A)),
+      ),
+    );
+  }
+
+  Widget _buildSoilDropdown() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: DropdownButtonFormField<String>(
+        value: _selectedSoilType,
+        dropdownColor: const Color(0xFF1A2535),
+        style: const TextStyle(color: Colors.white),
+        decoration: const InputDecoration(
+          labelText: 'Soil Type',
+          labelStyle: TextStyle(color: Color(0xFF546E7A)),
+          border: InputBorder.none,
+        ),
+        hint: const Text('Select soil type (optional)', style: TextStyle(color: Color(0xFF2A3F55))),
+        items: _soilTypes.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+        onChanged: (val) => setState(() => _selectedSoilType = val),
         icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF546E7A)),
       ),
     );
