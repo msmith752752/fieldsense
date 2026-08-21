@@ -1,5 +1,6 @@
 // field_intelligence.dart
-// Data models that match the FieldSense backend API response exactly.
+// Data models matching the FieldSense backend API.
+// Now includes soil_type, planting_date, growth_stage, daily_verdict.
 
 class FieldIntelligenceRequest {
   final String fieldName;
@@ -35,6 +36,9 @@ class FieldIntelligenceResponse {
   final String fieldName;
   final String? cropType;
   final double? acreage;
+  final String? soilType;
+  final String? plantingDate;
+  final String? growthStage;
   final double latitude;
   final double longitude;
   final RainfallAnalysis rainfall;
@@ -46,6 +50,9 @@ class FieldIntelligenceResponse {
     required this.fieldName,
     this.cropType,
     this.acreage,
+    this.soilType,
+    this.plantingDate,
+    this.growthStage,
     required this.latitude,
     required this.longitude,
     required this.rainfall,
@@ -59,6 +66,9 @@ class FieldIntelligenceResponse {
       fieldName: json['field_name'],
       cropType: json['crop_type'],
       acreage: json['acreage']?.toDouble(),
+      soilType: json['soil_type'],
+      plantingDate: json['planting_date'],
+      growthStage: json['growth_stage'],
       latitude: json['latitude'].toDouble(),
       longitude: json['longitude'].toDouble(),
       rainfall: RainfallAnalysis.fromJson(json['rainfall']),
@@ -231,22 +241,28 @@ class MoistureAnalysis {
 
 class RecommendationSummary {
   final String primaryRecommendation;
+  final String dailyVerdict;
   final String plantingReadiness;
   final String harvestWindowRisk;
+  final String? growthStage;
   final List<OperationalAlert> alerts;
 
   RecommendationSummary({
     required this.primaryRecommendation,
+    required this.dailyVerdict,
     required this.plantingReadiness,
     required this.harvestWindowRisk,
+    this.growthStage,
     required this.alerts,
   });
 
   factory RecommendationSummary.fromJson(Map<String, dynamic> json) {
     return RecommendationSummary(
       primaryRecommendation: json['primary_recommendation'] ?? '',
+      dailyVerdict: json['daily_verdict'] ?? '',
       plantingReadiness: json['planting_readiness'] ?? 'Unknown',
       harvestWindowRisk: json['harvest_window_risk'] ?? 'Unknown',
+      growthStage: json['growth_stage'],
       alerts: (json['operational_alerts'] as List? ?? [])
           .map((e) => OperationalAlert.fromJson(e))
           .toList(),
@@ -268,7 +284,6 @@ class OperationalAlert {
   }
 }
 
-// Saved field model for local storage
 class SavedField {
   final String fieldName;
   final double latitude;
