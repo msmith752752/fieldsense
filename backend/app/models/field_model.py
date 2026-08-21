@@ -1,6 +1,7 @@
 """
 field_model.py
 Pydantic models for field intelligence requests and responses.
+Now includes soil_type and planting_date for richer field intelligence.
 """
 
 from pydantic import BaseModel, Field
@@ -13,6 +14,8 @@ class FieldIntelligenceRequest(BaseModel):
     longitude: float = Field(..., example=-93.0977)
     crop_type: Optional[str] = Field(None, example="Corn")
     acreage: Optional[float] = Field(None, example=120.5)
+    soil_type: Optional[str] = Field(None, example="Loam")
+    planting_date: Optional[str] = Field(None, example="2026-05-01")
 
 
 class DailyRainfallEntry(BaseModel):
@@ -40,7 +43,7 @@ class DryWindow(BaseModel):
 
 
 class OperationalAlert(BaseModel):
-    level: str   # Warning, Watch, Info, Opportunity
+    level: str
     message: str
 
 
@@ -74,8 +77,10 @@ class MoistureAnalysis(BaseModel):
 
 class RecommendationSummary(BaseModel):
     primary_recommendation: str
+    daily_verdict: str
     planting_readiness: str
     harvest_window_risk: str
+    growth_stage: Optional[str]
     operational_alerts: List[OperationalAlert]
 
 
@@ -83,6 +88,9 @@ class FieldIntelligenceResponse(BaseModel):
     field_name: str
     crop_type: Optional[str]
     acreage: Optional[float]
+    soil_type: Optional[str]
+    planting_date: Optional[str]
+    growth_stage: Optional[str]
     latitude: float
     longitude: float
     rainfall: RainfallAnalysis
@@ -91,7 +99,6 @@ class FieldIntelligenceResponse(BaseModel):
     recommendation: RecommendationSummary
 
 
-# Legacy simple model kept for backward compatibility
 class FieldCondition(BaseModel):
     field_name: str
     crop_type: str
