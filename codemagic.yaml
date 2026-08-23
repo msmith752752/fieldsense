@@ -25,7 +25,9 @@ workflows:
       - name: Build iOS
         script: |
           cd frontend/fieldsense_app
-          flutter build ipa --release
+          flutter build ipa \
+            --release \
+            --export-options-plist=$CM_EXPORT_OPTIONS_PATH
     artifacts:
       - frontend/fieldsense_app/build/ios/ipa/*.ipa
     publishing:
