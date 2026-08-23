@@ -23,4 +23,6 @@ workflows:
     publishing:
       app_store_connect:
         api_key: Codemagic
+        key_id: 8628CY33P9
+        issuer_id: 124be977-f88e-483a-a7d4-28938605a965
         submit_to_testflight: true
