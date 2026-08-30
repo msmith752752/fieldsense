@@ -1,5 +1,5 @@
 // rainfall_card.dart
-// Clean Dark Sky inspired rainfall history display.
+// Farmer-friendly rainfall display.
 
 import 'package:flutter/material.dart';
 import '../models/field_intelligence.dart';
@@ -23,13 +23,13 @@ class RainfallCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('RAINFALL', style: Theme.of(context).textTheme.titleSmall),
+              Text('RAINFALL HISTORY', style: Theme.of(context).textTheme.titleSmall),
               _TrendLabel(trend: rainfall.trend),
             ],
           ),
           const SizedBox(height: 20),
 
-          // Big 7-day number - Dark Sky style hero stat
+          // Hero stat
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
@@ -44,25 +44,12 @@ class RainfallCard extends StatelessWidget {
               ),
               const Padding(
                 padding: EdgeInsets.only(bottom: 10, left: 4),
-                child: Text(
-                  'in',
-                  style: TextStyle(
-                    color: Color(0xFF78909C),
-                    fontSize: 18,
-                    fontWeight: FontWeight.w300,
-                  ),
-                ),
+                child: Text('inches', style: TextStyle(color: Color(0xFF78909C), fontSize: 14, fontWeight: FontWeight.w300)),
               ),
               const Spacer(),
               const Padding(
                 padding: EdgeInsets.only(bottom: 8),
-                child: Text(
-                  'past 7 days',
-                  style: TextStyle(
-                    color: Color(0xFF546E7A),
-                    fontSize: 13,
-                  ),
-                ),
+                child: Text('last 7 days', style: TextStyle(color: Color(0xFF546E7A), fontSize: 13)),
               ),
             ],
           ),
@@ -71,18 +58,17 @@ class RainfallCard extends StatelessWidget {
           const Divider(color: Color(0xFF1E2D3D), height: 1),
           const SizedBox(height: 16),
 
-          // Secondary stats row
           Row(
             children: [
-              _SmallStat(label: '24h', value: '${rainfall.last1Day.toStringAsFixed(2)}"'),
+              _SmallStat(label: 'Yesterday', value: '${rainfall.last1Day.toStringAsFixed(2)}"'),
               _Divider(),
-              _SmallStat(label: '3 day', value: '${rainfall.last3Day.toStringAsFixed(2)}"'),
+              _SmallStat(label: 'Last 3 days', value: '${rainfall.last3Day.toStringAsFixed(2)}"'),
               _Divider(),
-              _SmallStat(label: '14 day', value: '${rainfall.last14Day.toStringAsFixed(2)}"'),
+              _SmallStat(label: 'Last 14 days', value: '${rainfall.last14Day.toStringAsFixed(2)}"'),
               _Divider(),
               _SmallStat(
-                label: 'Since rain',
-                value: '${rainfall.daysSinceRain}d',
+                label: 'Days without rain',
+                value: '${rainfall.daysSinceRain}',
                 valueColor: rainfall.daysSinceRain >= 7
                     ? const Color(0xFFD4A843)
                     : const Color(0xFF4A90D9),
@@ -94,19 +80,14 @@ class RainfallCard extends StatelessWidget {
           const Divider(color: Color(0xFF1E2D3D), height: 1),
           const SizedBox(height: 14),
 
-          // Saturation
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Saturation Risk',
-                style: TextStyle(color: Color(0xFF78909C), fontSize: 13),
-              ),
+              const Text('Too wet to work?', style: TextStyle(color: Color(0xFF78909C), fontSize: 13)),
               _SaturationLabel(risk: rainfall.saturationRisk),
             ],
           ),
 
-          // Mini bar chart
           if (rainfall.dailyHistory.isNotEmpty) ...[
             const SizedBox(height: 16),
             _MiniBarChart(history: rainfall.dailyHistory),
@@ -131,14 +112,10 @@ class _SmallStat extends StatelessWidget {
         children: [
           Text(
             value,
-            style: TextStyle(
-              color: valueColor ?? Colors.white,
-              fontSize: 15,
-              fontWeight: FontWeight.w500,
-            ),
+            style: TextStyle(color: valueColor ?? Colors.white, fontSize: 15, fontWeight: FontWeight.w500),
           ),
           const SizedBox(height: 3),
-          Text(label, style: const TextStyle(color: Color(0xFF546E7A), fontSize: 11)),
+          Text(label, style: const TextStyle(color: Color(0xFF546E7A), fontSize: 10), textAlign: TextAlign.center),
         ],
       ),
     );
@@ -154,7 +131,6 @@ class _Divider extends StatelessWidget {
 
 class _TrendLabel extends StatelessWidget {
   final String trend;
-
   const _TrendLabel({required this.trend});
 
   @override
@@ -186,7 +162,6 @@ class _TrendLabel extends StatelessWidget {
 
 class _SaturationLabel extends StatelessWidget {
   final String risk;
-
   const _SaturationLabel({required this.risk});
 
   Color _color() {
@@ -198,18 +173,23 @@ class _SaturationLabel extends StatelessWidget {
     }
   }
 
+  String _label() {
+    switch (risk.toLowerCase()) {
+      case 'high': return 'Yes — stay out';
+      case 'moderate': return 'Maybe — use caution';
+      case 'low': return 'Probably fine';
+      default: return 'No issue';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Text(
-      risk,
-      style: TextStyle(color: _color(), fontSize: 13, fontWeight: FontWeight.w600),
-    );
+    return Text(_label(), style: TextStyle(color: _color(), fontSize: 13, fontWeight: FontWeight.w600));
   }
 }
 
 class _MiniBarChart extends StatelessWidget {
   final List<DailyRainfall> history;
-
   const _MiniBarChart({required this.history});
 
   @override

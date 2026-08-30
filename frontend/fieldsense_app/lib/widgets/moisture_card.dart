@@ -1,5 +1,5 @@
 // moisture_card.dart
-// Clean Dark Sky inspired moisture display.
+// Farmer-friendly moisture display.
 
 import 'package:flutter/material.dart';
 import '../models/field_intelligence.dart';
@@ -20,16 +20,16 @@ class MoistureCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('FIELD MOISTURE', style: Theme.of(context).textTheme.titleSmall),
+          Text('SOIL CONDITIONS', style: Theme.of(context).textTheme.titleSmall),
           const SizedBox(height: 20),
 
-          // Hero moisture state
+          // Hero moisture state - plain English
           Row(
             crossAxisAlignment: CrossAxisAlignment.baseline,
             textBaseline: TextBaseline.alphabetic,
             children: [
               Text(
-                moisture.moistureState,
+                _friendlyState(moisture.moistureState),
                 style: TextStyle(
                   color: _getMoistureColor(moisture.moistureState),
                   fontSize: 32,
@@ -39,11 +39,49 @@ class MoistureCard extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               Text(
-                '· ${moisture.moistureTrend}',
-                style: const TextStyle(
-                  color: Color(0xFF546E7A),
-                  fontSize: 15,
-                  fontWeight: FontWeight.w400,
+                '· ${_friendlyTrend(moisture.moistureTrend)}',
+                style: const TextStyle(color: Color(0xFF546E7A), fontSize: 15, fontWeight: FontWeight.w400),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 16),
+          const Divider(color: Color(0xFF1E2D3D), height: 1),
+          const SizedBox(height: 14),
+
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  children: [
+                    Text(
+                      _friendlyDrought(moisture.droughtRisk),
+                      style: TextStyle(
+                        color: _getDroughtColor(moisture.droughtRisk),
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    const Text('Drought risk', style: TextStyle(color: Color(0xFF546E7A), fontSize: 11)),
+                  ],
+                ),
+              ),
+              Container(width: 1, height: 28, color: const Color(0xFF1E2D3D)),
+              Expanded(
+                child: Column(
+                  children: [
+                    Text(
+                      '${moisture.fieldDryDays} days',
+                      style: TextStyle(
+                        color: moisture.fieldDryDays >= 7 ? const Color(0xFFD4A843) : Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    const Text('Without rain', style: TextStyle(color: Color(0xFF546E7A), fontSize: 11)),
+                  ],
                 ),
               ),
             ],
@@ -53,39 +91,12 @@ class MoistureCard extends StatelessWidget {
           const Divider(color: Color(0xFF1E2D3D), height: 1),
           const SizedBox(height: 14),
 
-          // Stats row
-          Row(
-            children: [
-              _MoistureStat(
-                label: 'Drought Risk',
-                value: moisture.droughtRisk,
-                valueColor: _getDroughtColor(moisture.droughtRisk),
-              ),
-              Container(width: 1, height: 28, color: const Color(0xFF1E2D3D)),
-              _MoistureStat(
-                label: 'Days Dry',
-                value: '${moisture.fieldDryDays}',
-                valueColor: moisture.fieldDryDays >= 7
-                    ? const Color(0xFFD4A843)
-                    : Colors.white,
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 16),
-          const Divider(color: Color(0xFF1E2D3D), height: 1),
-          const SizedBox(height: 14),
-
-          // Irrigation signal
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Irrigation Signal',
-                style: TextStyle(color: Color(0xFF78909C), fontSize: 13),
-              ),
+              const Text('Should I irrigate?', style: TextStyle(color: Color(0xFF78909C), fontSize: 13)),
               Text(
-                moisture.irrigationSignal,
+                _friendlyIrrigation(moisture.irrigationSignal),
                 style: TextStyle(
                   color: _getIrrigationColor(moisture.irrigationSignal),
                   fontSize: 13,
@@ -97,6 +108,43 @@ class MoistureCard extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _friendlyState(String state) {
+    switch (state.toLowerCase()) {
+      case 'saturated': return 'Too Wet';
+      case 'wet': return 'Wet';
+      case 'adequate': return 'Good';
+      case 'drying': return 'Drying Out';
+      case 'dry': return 'Too Dry';
+      default: return state;
+    }
+  }
+
+  String _friendlyTrend(String trend) {
+    switch (trend.toLowerCase()) {
+      case 'increasing': return 'getting wetter';
+      case 'decreasing': return 'drying out';
+      default: return 'holding steady';
+    }
+  }
+
+  String _friendlyDrought(String risk) {
+    switch (risk.toLowerCase()) {
+      case 'high': return 'High';
+      case 'moderate': return 'Moderate';
+      case 'low': return 'Low';
+      default: return 'None';
+    }
+  }
+
+  String _friendlyIrrigation(String signal) {
+    switch (signal.toLowerCase()) {
+      case 'likely needed': return 'Yes — irrigate now';
+      case 'consider irrigating': return 'Maybe — monitor closely';
+      case 'not recommended': return 'No — soil is wet';
+      default: return 'Keep an eye on it';
+    }
   }
 
   Color _getMoistureColor(String state) {
@@ -126,37 +174,5 @@ class MoistureCard extends StatelessWidget {
       case 'not recommended': return const Color(0xFF4A90D9);
       default: return const Color(0xFF78909C);
     }
-  }
-}
-
-class _MoistureStat extends StatelessWidget {
-  final String label;
-  final String value;
-  final Color valueColor;
-
-  const _MoistureStat({
-    required this.label,
-    required this.value,
-    required this.valueColor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Column(
-        children: [
-          Text(
-            value,
-            style: TextStyle(
-              color: valueColor,
-              fontSize: 15,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 3),
-          Text(label, style: const TextStyle(color: Color(0xFF546E7A), fontSize: 11)),
-        ],
-      ),
-    );
   }
 }

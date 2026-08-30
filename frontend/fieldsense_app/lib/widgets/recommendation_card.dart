@@ -1,5 +1,5 @@
 // recommendation_card.dart
-// Redesigned with daily verdict as the hero element.
+// Farmer-friendly labels and clear actionable layout.
 
 import 'package:flutter/material.dart';
 import '../models/field_intelligence.dart';
@@ -14,7 +14,7 @@ class RecommendationCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Daily Verdict — hero card, most prominent element
+        // TODAY card - hero
         _DailyVerdictCard(
           verdict: recommendation.dailyVerdict,
           growthStage: recommendation.growthStage,
@@ -22,7 +22,7 @@ class RecommendationCard extends StatelessWidget {
 
         const SizedBox(height: 10),
 
-        // Full field summary
+        // Field summary
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(20),
@@ -50,12 +50,22 @@ class RecommendationCard extends StatelessWidget {
 
         const SizedBox(height: 10),
 
-        // Status row
+        // Status row - farmer friendly labels
         Row(
           children: [
-            Expanded(child: _StatusCard(label: 'PLANTING', value: recommendation.plantingReadiness)),
+            Expanded(
+              child: _StatusCard(
+                label: 'OK TO PLANT?',
+                value: recommendation.plantingReadiness,
+              ),
+            ),
             const SizedBox(width: 8),
-            Expanded(child: _StatusCard(label: 'HARVEST WINDOW', value: recommendation.harvestWindowRisk)),
+            Expanded(
+              child: _StatusCard(
+                label: 'HARVEST CONDITIONS',
+                value: recommendation.harvestWindowRisk,
+              ),
+            ),
           ],
         ),
 
@@ -75,7 +85,7 @@ class _DailyVerdictCard extends StatelessWidget {
 
   const _DailyVerdictCard({required this.verdict, this.growthStage});
 
-  Color _getVerdictColor(String verdict) {
+  Color _getColor(String verdict) {
     final v = verdict.toLowerCase();
     if (v.contains('stay out') || v.contains('saturated') || v.contains('irrigate now') || v.contains('hold off')) {
       return const Color(0xFFE05C5C);
@@ -89,7 +99,7 @@ class _DailyVerdictCard extends StatelessWidget {
     return const Color(0xFF78909C);
   }
 
-  IconData _getVerdictIcon(String verdict) {
+  IconData _getIcon(String verdict) {
     final v = verdict.toLowerCase();
     if (v.contains('stay out') || v.contains('saturated') || v.contains('hold off')) {
       return Icons.warning_amber_rounded;
@@ -105,8 +115,8 @@ class _DailyVerdictCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = _getVerdictColor(verdict);
-    final icon = _getVerdictIcon(verdict);
+    final color = _getColor(verdict);
+    final icon = _getIcon(verdict);
 
     return Container(
       width: double.infinity,
@@ -123,7 +133,7 @@ class _DailyVerdictCard extends StatelessWidget {
             children: [
               Icon(icon, color: color, size: 16),
               const SizedBox(width: 6),
-              Text('TODAY', style: Theme.of(context).textTheme.titleSmall),
+              Text('TODAY\'S RECOMMENDATION', style: Theme.of(context).textTheme.titleSmall),
               if (growthStage != null) ...[
                 const Spacer(),
                 Container(
@@ -134,11 +144,7 @@ class _DailyVerdictCard extends StatelessWidget {
                   ),
                   child: Text(
                     growthStage!,
-                    style: const TextStyle(
-                      color: Color(0xFF546E7A),
-                      fontSize: 10,
-                      fontWeight: FontWeight.w500,
-                    ),
+                    style: const TextStyle(color: Color(0xFF546E7A), fontSize: 10, fontWeight: FontWeight.w500),
                   ),
                 ),
               ],
@@ -147,12 +153,7 @@ class _DailyVerdictCard extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             verdict,
-            style: TextStyle(
-              color: color,
-              fontSize: 16,
-              height: 1.5,
-              fontWeight: FontWeight.w500,
-            ),
+            style: TextStyle(color: color, fontSize: 16, height: 1.5, fontWeight: FontWeight.w500),
           ),
         ],
       ),
