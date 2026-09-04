@@ -39,35 +39,14 @@ class FieldSenseApp extends StatelessWidget {
           error: Color(0xFFE05C5C),
         ),
         textTheme: const TextTheme(
-          titleLarge: TextStyle(
-            color: Colors.white,
-            fontSize: 28,
-            fontWeight: FontWeight.w300,
-            letterSpacing: -0.5,
-          ),
-          titleMedium: TextStyle(
-            color: Colors.white,
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-          ),
-          titleSmall: TextStyle(
-            color: Color(0xFF78909C),
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 1.2,
-          ),
-          bodyMedium: TextStyle(
-            color: Color(0xFFCFD8DC),
-            fontSize: 14,
-            height: 1.6,
-          ),
-          bodySmall: TextStyle(
-            color: Color(0xFF546E7A),
-            fontSize: 12,
-          ),
+          titleLarge: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w300, letterSpacing: -0.5),
+          titleMedium: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500),
+          titleSmall: TextStyle(color: Color(0xFF78909C), fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 1.2),
+          bodyMedium: TextStyle(color: Color(0xFFCFD8DC), fontSize: 14, height: 1.6),
+          bodySmall: TextStyle(color: Color(0xFF546E7A), fontSize: 12),
         ),
       ),
-      home: onboardingComplete ? const HomeScreen() : const OnboardingScreen(),
+      home: onboardingComplete ? const HomeScreen() : OnboardingScreen(),
     );
   }
 }
