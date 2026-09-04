@@ -1,13 +1,12 @@
 // add_field_screen.dart
-// Add or Edit a field. Supports GPS, soil type, planting date, and full edit mode.
+// Add or Edit a field - GPS first, minimal friction.
 
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import '../models/field_intelligence.dart';
 
 class AddFieldScreen extends StatefulWidget {
-  final SavedField? existingField; // if provided, we're in edit mode
-
+  final SavedField? existingField;
   const AddFieldScreen({super.key, this.existingField});
 
   @override
@@ -28,14 +27,8 @@ class _AddFieldScreenState extends State<AddFieldScreen> {
 
   bool get _isEditing => widget.existingField != null;
 
-  final List<String> _cropTypes = [
-    'Corn', 'Soybeans', 'Wheat', 'Cotton', 'Sorghum',
-    'Hay', 'Alfalfa', 'Pasture', 'Vegetables', 'Other',
-  ];
-
-  final List<String> _soilTypes = [
-    'Sandy', 'Sandy Loam', 'Loam', 'Clay Loam', 'Clay', 'Silt Loam', 'Other',
-  ];
+  final List<String> _cropTypes = ['Corn', 'Soybeans', 'Wheat', 'Cotton', 'Sorghum', 'Hay', 'Alfalfa', 'Pasture', 'Vegetables', 'Other'];
+  final List<String> _soilTypes = ['Sandy', 'Sandy Loam', 'Loam', 'Clay Loam', 'Clay', 'Silt Loam', 'Other'];
 
   @override
   void initState() {
@@ -47,10 +40,13 @@ class _AddFieldScreenState extends State<AddFieldScreen> {
     _acreageController = TextEditingController(text: f?.acreage?.toString() ?? '');
     _selectedCrop = f?.cropType;
     _selectedSoilType = f?.soilType;
-    if (f?.plantingDate != null) {
-      _plantingDate = DateTime.tryParse(f!.plantingDate!);
-    }
+    if (f?.plantingDate != null) _plantingDate = DateTime.tryParse(f!.plantingDate!);
     if (f != null) _locationDetected = true;
+
+    // Auto-detect location for new fields
+    if (!_isEditing) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _detectLocation());
+    }
   }
 
   @override
@@ -66,25 +62,14 @@ class _AddFieldScreenState extends State<AddFieldScreen> {
     setState(() => _isLocating = true);
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        _showError('Location services are disabled. Please enable them in Settings.');
-        return;
-      }
+      if (!serviceEnabled) { _showError('Location services are disabled.'); return; }
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          _showError('Location permission denied.');
-          return;
-        }
+        if (permission == LocationPermission.denied) { _showError('Location permission denied.'); return; }
       }
-      if (permission == LocationPermission.deniedForever) {
-        _showError('Location permission permanently denied. Please enable it in Settings.');
-        return;
-      }
-      final position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
+      if (permission == LocationPermission.deniedForever) { _showError('Location permission denied. Please enable in Settings.'); return; }
+      final position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
       setState(() {
         _latController.text = position.latitude.toStringAsFixed(6);
         _lonController.text = position.longitude.toStringAsFixed(6);
@@ -92,7 +77,7 @@ class _AddFieldScreenState extends State<AddFieldScreen> {
         _isLocating = false;
       });
     } catch (e) {
-      _showError('Could not determine location. Please enter coordinates manually.');
+      _showError('Could not detect location. Enter coordinates manually.');
     } finally {
       setState(() => _isLocating = false);
     }
@@ -116,17 +101,12 @@ class _AddFieldScreenState extends State<AddFieldScreen> {
       initialDate: _plantingDate ?? DateTime.now(),
       firstDate: DateTime(DateTime.now().year - 2),
       lastDate: DateTime.now(),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: Color(0xFF4A90D9),
-              surface: Color(0xFF1A2535),
-            ),
-          ),
-          child: child!,
-        );
-      },
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: const ColorScheme.dark(primary: Color(0xFF4A90D9), surface: Color(0xFF1A2535)),
+        ),
+        child: child!,
+      ),
     );
     if (picked != null) setState(() => _plantingDate = picked);
   }
@@ -138,9 +118,7 @@ class _AddFieldScreenState extends State<AddFieldScreen> {
         latitude: double.parse(_latController.text.trim()),
         longitude: double.parse(_lonController.text.trim()),
         cropType: _selectedCrop,
-        acreage: _acreageController.text.isNotEmpty
-            ? double.tryParse(_acreageController.text.trim())
-            : null,
+        acreage: _acreageController.text.isNotEmpty ? double.tryParse(_acreageController.text.trim()) : null,
         soilType: _selectedSoilType,
         plantingDate: _plantingDate != null
             ? '${_plantingDate!.year}-${_plantingDate!.month.toString().padLeft(2, '0')}-${_plantingDate!.day.toString().padLeft(2, '0')}'
@@ -156,16 +134,13 @@ class _AddFieldScreenState extends State<AddFieldScreen> {
       backgroundColor: const Color(0xFF0F1923),
       appBar: AppBar(
         backgroundColor: const Color(0xFF0F1923),
-        title: Text(
-          _isEditing ? 'Edit Field' : 'Add Field',
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w400, fontSize: 18),
-        ),
+        title: Text(_isEditing ? 'Edit Field' : 'Add Your Field',
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w400, fontSize: 18)),
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
           TextButton(
             onPressed: _submit,
-            child: const Text('Save',
-                style: TextStyle(color: Color(0xFF4A90D9), fontWeight: FontWeight.w600, fontSize: 16)),
+            child: const Text('Save', style: TextStyle(color: Color(0xFF4A90D9), fontWeight: FontWeight.w600, fontSize: 16)),
           ),
         ],
       ),
@@ -176,15 +151,72 @@ class _AddFieldScreenState extends State<AddFieldScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Field Information
-              _sectionLabel('FIELD INFORMATION'),
+
+              // Location first - most important
+              _sectionLabel('YOUR LOCATION'),
+              const SizedBox(height: 4),
+              const Text(
+                'We detect your location automatically.',
+                style: TextStyle(color: Color(0xFF546E7A), fontSize: 12),
+              ),
+              const SizedBox(height: 8),
+
+              // GPS status
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1A2535),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: _locationDetected ? const Color(0xFF5BA05E).withOpacity(0.5) : const Color(0xFF4A90D9).withOpacity(0.3),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    if (_isLocating)
+                      const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 1.5, color: Color(0xFF4A90D9)))
+                    else
+                      Icon(
+                        _locationDetected ? Icons.check_circle_outline : Icons.my_location_rounded,
+                        size: 18,
+                        color: _locationDetected ? const Color(0xFF5BA05E) : const Color(0xFF4A90D9),
+                      ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        _isLocating ? 'Detecting your location...'
+                            : _locationDetected
+                                ? 'Location detected — ${_latController.text.isNotEmpty ? "${double.tryParse(_latController.text)?.toStringAsFixed(4) ?? ""}, ${double.tryParse(_lonController.text)?.toStringAsFixed(4) ?? ""}" : ""}'
+                                : 'Tap to detect location',
+                        style: TextStyle(
+                          color: _locationDetected ? const Color(0xFF5BA05E) : const Color(0xFF4A90D9),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    if (!_locationDetected && !_isLocating)
+                      TextButton(
+                        onPressed: _detectLocation,
+                        child: const Text('Detect', style: TextStyle(color: Color(0xFF4A90D9), fontSize: 13)),
+                      ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
+              // Field info
+              _sectionLabel('FIELD DETAILS'),
               const SizedBox(height: 8),
               _buildCard([
                 _buildTextField(
                   controller: _nameController,
                   label: 'Field Name',
-                  hint: 'e.g. North Field',
-                  validator: (v) => v == null || v.isEmpty ? 'Field name is required' : null,
+                  hint: 'e.g. North Field, Back 40',
+                  validator: (v) => v == null || v.isEmpty ? 'Give this field a name' : null,
                 ),
                 _buildDivider(),
                 _buildCropDropdown(),
@@ -193,46 +225,35 @@ class _AddFieldScreenState extends State<AddFieldScreen> {
                 _buildDivider(),
                 _buildTextField(
                   controller: _acreageController,
-                  label: 'Acreage',
-                  hint: 'e.g. 120.5',
+                  label: 'Acreage (optional)',
+                  hint: 'e.g. 120',
                   keyboardType: TextInputType.number,
                 ),
               ]),
 
               const SizedBox(height: 16),
 
-              // Planting Date
-              _sectionLabel('PLANTING DATE'),
+              // Planting date
+              _sectionLabel('PLANTING DATE (OPTIONAL)'),
+              const SizedBox(height: 4),
+              const Text('Helps us track your crop\'s growth stage.', style: TextStyle(color: Color(0xFF546E7A), fontSize: 12)),
               const SizedBox(height: 8),
               GestureDetector(
                 onTap: _pickPlantingDate,
                 child: Container(
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1A2535),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+                  decoration: BoxDecoration(color: const Color(0xFF1A2535), borderRadius: BorderRadius.circular(12)),
                   child: Row(
                     children: [
-                      Icon(
-                        Icons.calendar_today_outlined,
-                        size: 16,
-                        color: _plantingDate != null
-                            ? const Color(0xFF4A90D9)
-                            : const Color(0xFF546E7A),
-                      ),
+                      Icon(Icons.calendar_today_outlined, size: 16,
+                          color: _plantingDate != null ? const Color(0xFF4A90D9) : const Color(0xFF546E7A)),
                       const SizedBox(width: 10),
                       Text(
                         _plantingDate != null
                             ? '${_plantingDate!.month}/${_plantingDate!.day}/${_plantingDate!.year}'
-                            : 'Select planting date (optional)',
-                        style: TextStyle(
-                          color: _plantingDate != null
-                              ? Colors.white
-                              : const Color(0xFF546E7A),
-                          fontSize: 14,
-                        ),
+                            : 'Select planting date',
+                        style: TextStyle(color: _plantingDate != null ? Colors.white : const Color(0xFF546E7A), fontSize: 14),
                       ),
                       const Spacer(),
                       if (_plantingDate != null)
@@ -244,89 +265,6 @@ class _AddFieldScreenState extends State<AddFieldScreen> {
                   ),
                 ),
               ),
-
-              const SizedBox(height: 24),
-
-              // Location
-              _sectionLabel('LOCATION'),
-              const SizedBox(height: 8),
-              GestureDetector(
-                onTap: _isLocating ? null : _detectLocation,
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1A2535),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: _locationDetected
-                          ? const Color(0xFF5BA05E).withOpacity(0.5)
-                          : const Color(0xFF4A90D9).withOpacity(0.3),
-                      width: 1,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      if (_isLocating)
-                        const SizedBox(
-                          width: 16, height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 1.5, color: Color(0xFF4A90D9)),
-                        )
-                      else
-                        Icon(
-                          _locationDetected ? Icons.check_circle_outline : Icons.my_location_rounded,
-                          size: 18,
-                          color: _locationDetected ? const Color(0xFF5BA05E) : const Color(0xFF4A90D9),
-                        ),
-                      const SizedBox(width: 10),
-                      Text(
-                        _isLocating ? 'Detecting location...'
-                            : _locationDetected ? 'Location detected'
-                            : 'Use my current location',
-                        style: TextStyle(
-                          color: _locationDetected ? const Color(0xFF5BA05E) : const Color(0xFF4A90D9),
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 12),
-              const Text('Or enter coordinates manually',
-                  style: TextStyle(color: Color(0xFF546E7A), fontSize: 12)),
-              const SizedBox(height: 8),
-
-              _buildCard([
-                _buildTextField(
-                  controller: _latController,
-                  label: 'Latitude',
-                  hint: 'e.g. 41.8781',
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
-                  validator: (v) {
-                    if (v == null || v.isEmpty) return 'Latitude is required';
-                    final d = double.tryParse(v);
-                    if (d == null || d < -90 || d > 90) return 'Enter a valid latitude (-90 to 90)';
-                    return null;
-                  },
-                ),
-                _buildDivider(),
-                _buildTextField(
-                  controller: _lonController,
-                  label: 'Longitude',
-                  hint: 'e.g. -93.0977',
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
-                  validator: (v) {
-                    if (v == null || v.isEmpty) return 'Longitude is required';
-                    final d = double.tryParse(v);
-                    if (d == null || d < -180 || d > 180) return 'Enter a valid longitude (-180 to 180)';
-                    return null;
-                  },
-                ),
-              ]),
 
               const SizedBox(height: 32),
               SizedBox(
@@ -341,7 +279,7 @@ class _AddFieldScreenState extends State<AddFieldScreen> {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   child: Text(
-                    _isEditing ? 'Save Changes' : 'Add Field',
+                    _isEditing ? 'Save Changes' : 'Get My Field Intelligence',
                     style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
                   ),
                 ),
@@ -354,9 +292,7 @@ class _AddFieldScreenState extends State<AddFieldScreen> {
   }
 
   Widget _sectionLabel(String text) {
-    return Text(text,
-        style: const TextStyle(
-            color: Color(0xFF546E7A), fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 1.2));
+    return Text(text, style: const TextStyle(color: Color(0xFF546E7A), fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 1.2));
   }
 
   Widget _buildCard(List<Widget> children) {
@@ -366,9 +302,7 @@ class _AddFieldScreenState extends State<AddFieldScreen> {
     );
   }
 
-  Widget _buildDivider() {
-    return const Divider(height: 1, indent: 16, color: Color(0xFF1E2D3D));
-  }
+  Widget _buildDivider() => const Divider(height: 1, indent: 16, color: Color(0xFF1E2D3D));
 
   Widget _buildTextField({
     required TextEditingController controller,
@@ -401,11 +335,7 @@ class _AddFieldScreenState extends State<AddFieldScreen> {
         value: _selectedCrop,
         dropdownColor: const Color(0xFF1A2535),
         style: const TextStyle(color: Colors.white),
-        decoration: const InputDecoration(
-          labelText: 'Crop Type',
-          labelStyle: TextStyle(color: Color(0xFF546E7A)),
-          border: InputBorder.none,
-        ),
+        decoration: const InputDecoration(labelText: 'What are you growing?', labelStyle: TextStyle(color: Color(0xFF546E7A)), border: InputBorder.none),
         hint: const Text('Select crop (optional)', style: TextStyle(color: Color(0xFF2A3F55))),
         items: _cropTypes.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
         onChanged: (val) => setState(() => _selectedCrop = val),
@@ -421,12 +351,8 @@ class _AddFieldScreenState extends State<AddFieldScreen> {
         value: _selectedSoilType,
         dropdownColor: const Color(0xFF1A2535),
         style: const TextStyle(color: Colors.white),
-        decoration: const InputDecoration(
-          labelText: 'Soil Type',
-          labelStyle: TextStyle(color: Color(0xFF546E7A)),
-          border: InputBorder.none,
-        ),
-        hint: const Text('Select soil type (optional)', style: TextStyle(color: Color(0xFF2A3F55))),
+        decoration: const InputDecoration(labelText: 'Soil type (optional)', labelStyle: TextStyle(color: Color(0xFF546E7A)), border: InputBorder.none),
+        hint: const Text('Select soil type', style: TextStyle(color: Color(0xFF2A3F55))),
         items: _soilTypes.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
         onChanged: (val) => setState(() => _selectedSoilType = val),
         icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF546E7A)),
