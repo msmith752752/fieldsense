@@ -20,9 +20,26 @@ void main() async {
   runApp(FieldSenseApp(onboardingComplete: onboardingComplete));
 }
 
-class FieldSenseApp extends StatelessWidget {
+class FieldSenseApp extends StatefulWidget {
   final bool onboardingComplete;
   const FieldSenseApp({super.key, required this.onboardingComplete});
+
+  @override
+  State<FieldSenseApp> createState() => _FieldSenseAppState();
+}
+
+class _FieldSenseAppState extends State<FieldSenseApp> {
+  late bool _onboardingComplete;
+
+  @override
+  void initState() {
+    super.initState();
+    _onboardingComplete = widget.onboardingComplete;
+  }
+
+  void _onOnboardingComplete() {
+    setState(() => _onboardingComplete = true);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -46,7 +63,9 @@ class FieldSenseApp extends StatelessWidget {
           bodySmall: TextStyle(color: Color(0xFF546E7A), fontSize: 12),
         ),
       ),
-      home: onboardingComplete ? const HomeScreen() : OnboardingScreen(),
+      home: _onboardingComplete
+          ? const HomeScreen()
+          : OnboardingScreen(onComplete: _onOnboardingComplete),
     );
   }
 }

@@ -1,124 +1,60 @@
-// home_screen.dart
-// FieldSense dashboard - TODAY verdict is the hero.
+// onboarding_screen.dart
+// No import of home_screen — uses onComplete callback instead.
 
 import 'package:flutter/material.dart';
-import '../models/field_intelligence.dart';
-import '../services/api_service.dart';
-import '../services/field_storage_service.dart';
-import '../widgets/recommendation_card.dart';
-import '../widgets/rainfall_card.dart';
-import '../widgets/forecast_card.dart';
-import '../widgets/moisture_card.dart';
-import 'add_field_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+class OnboardingScreen extends StatefulWidget {
+  final VoidCallback? onComplete;
+  const OnboardingScreen({super.key, this.onComplete});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  State<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  List<SavedField> _fields = [];
-  int _selectedFieldIndex = 0;
+class _OnboardingScreenState extends State<OnboardingScreen> {
+  final PageController _pageController = PageController();
+  int _currentPage = 0;
 
-  FieldIntelligenceResponse? _intelligence;
-  bool _isLoading = false;
-  bool _isLoadingFields = true;
-  String? _errorMessage;
-  DateTime? _lastUpdated;
+  final List<_OnboardingPage> _pages = [
+    _OnboardingPage(
+      icon: Icons.agriculture_outlined,
+      title: 'Stop guessing.\nStart knowing.',
+      subtitle: 'FieldSense analyzes real rainfall data and gives you one clear answer every morning:\n\nWhat should I do in my field today?',
+      highlight: null,
+    ),
+    _OnboardingPage(
+      icon: Icons.water_drop_outlined,
+      title: 'Real data.\nYour field.',
+      subtitle: 'We track rainfall history, soil moisture, upcoming weather, and your crop\'s growth stage — all in one place.',
+      highlight: null,
+    ),
+    _OnboardingPage(
+      icon: Icons.check_circle_outline,
+      title: 'Your daily verdict.',
+      subtitle: 'Every morning, FieldSense tells you:\n\n"Good working window — plan field operations today."\n\nor\n\n"Stay out — saturated conditions with more rain coming."',
+      highlight: null,
+    ),
+    _OnboardingPage(
+      icon: Icons.my_location_rounded,
+      title: 'Ready in 60 seconds.',
+      subtitle: 'Tap + to add your field.\nWe\'ll detect your location automatically.\nPick your crop and soil type.\nThat\'s it.',
+      highlight: 'Let\'s get started →',
+    ),
+  ];
+
+  Future<void> _completeOnboarding() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('onboarding_complete', true);
+    if (widget.onComplete != null) {
+      widget.onComplete!();
+    }
+  }
 
   @override
-  void initState() {
-    super.initState();
-    _initFields();
-  }
-
-  Future<void> _initFields() async {
-    final saved = await FieldStorageService.loadFields();
-    setState(() {
-      _fields = saved;
-      _isLoadingFields = false;
-    });
-    if (_fields.isNotEmpty) _loadFieldIntelligence();
-  }
-
-  Future<void> _loadFieldIntelligence() async {
-    if (_fields.isEmpty) return;
-    setState(() { _isLoading = true; _errorMessage = null; });
-    try {
-      final response = await ApiService.getFieldIntelligence(_fields[_selectedFieldIndex].toRequest());
-      setState(() { _intelligence = response; _lastUpdated = DateTime.now(); _isLoading = false; });
-    } on ApiException catch (e) {
-      setState(() { _errorMessage = e.message; _isLoading = false; });
-    } catch (e) {
-      setState(() { _errorMessage = 'Something went wrong. Please try again.'; _isLoading = false; });
-    }
-  }
-
-  Future<void> _addField() async {
-    final SavedField? newField = await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const AddFieldScreen()),
-    );
-    if (newField != null) {
-      await FieldStorageService.addField(_fields, newField);
-      setState(() { _selectedFieldIndex = _fields.length - 1; _intelligence = null; });
-      _loadFieldIntelligence();
-    }
-  }
-
-  Future<void> _editField(int index) async {
-    final SavedField? updated = await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => AddFieldScreen(existingField: _fields[index])),
-    );
-    if (updated != null) {
-      _fields[index] = updated;
-      await FieldStorageService.saveFields(_fields);
-      setState(() => _intelligence = null);
-      _loadFieldIntelligence();
-    }
-  }
-
-  Future<void> _deleteField(int index) async {
-    final field = _fields[index];
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1A2535),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Remove Field', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500)),
-        content: Text('Remove "${field.fieldName}"?', style: const TextStyle(color: Color(0xFF78909C))),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel', style: TextStyle(color: Color(0xFF78909C)))),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Remove', style: TextStyle(color: Color(0xFFE05C5C)))),
-        ],
-      ),
-    );
-    if (confirm == true) {
-      await FieldStorageService.removeField(_fields, index);
-      setState(() {
-        if (_selectedFieldIndex >= _fields.length) _selectedFieldIndex = _fields.isEmpty ? 0 : _fields.length - 1;
-        _intelligence = null;
-      });
-      if (_fields.isNotEmpty) _loadFieldIntelligence();
-    }
-  }
-
-  String _formatLastUpdated(DateTime time) {
-    final diff = DateTime.now().difference(time);
-    if (diff.inSeconds < 60) return 'Updated just now';
-    if (diff.inMinutes == 1) return 'Updated 1 min ago';
-    if (diff.inMinutes < 60) return 'Updated ${diff.inMinutes} min ago';
-    if (diff.inHours == 1) return 'Updated 1 hour ago';
-    return 'Updated ${diff.inHours} hours ago';
-  }
-
-  void _selectField(int index) {
-    if (index == _selectedFieldIndex) return;
-    setState(() { _selectedFieldIndex = index; _intelligence = null; });
-    _loadFieldIntelligence();
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
   }
 
   @override
@@ -128,233 +64,117 @@ class _HomeScreenState extends State<HomeScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            _buildHeader(),
-            if (_fields.length > 1) _buildFieldTabs(),
-            Expanded(child: _buildBody()),
-          ],
-        ),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _addField,
-        backgroundColor: const Color(0xFF4A90D9),
-        elevation: 0,
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text('Add Field', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500)),
-      ),
-    );
-  }
-
-  Widget _buildHeader() {
-    final field = _fields.isNotEmpty ? _fields[_selectedFieldIndex] : null;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 20, 16, 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('FIELDSENSE', style: TextStyle(color: Color(0xFF4A90D9), fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 2.0)),
-                const SizedBox(height: 4),
-                Text(
-                  field?.fieldName ?? 'My Fields',
-                  style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w300, letterSpacing: -0.5),
-                ),
-                if (field?.cropType != null)
-                  Text(
-                    '${field!.cropType}'
-                    '${field.soilType != null ? '  ·  ${field.soilType}' : ''}'
-                    '${field.acreage != null ? '  ·  ${field.acreage!.toStringAsFixed(0)} ac' : ''}',
-                    style: const TextStyle(color: Color(0xFF546E7A), fontSize: 13),
+            Align(
+              alignment: Alignment.topRight,
+              child: TextButton(
+                onPressed: _completeOnboarding,
+                child: const Text('Skip', style: TextStyle(color: Color(0xFF546E7A), fontSize: 14)),
+              ),
+            ),
+            Expanded(
+              child: PageView.builder(
+                controller: _pageController,
+                itemCount: _pages.length,
+                onPageChanged: (i) => setState(() => _currentPage = i),
+                itemBuilder: (context, index) {
+                  final page = _pages[index];
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 32),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 80,
+                          height: 80,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: const Color(0xFF4A90D9).withOpacity(0.1),
+                            border: Border.all(color: const Color(0xFF4A90D9).withOpacity(0.2), width: 1),
+                          ),
+                          child: Icon(page.icon, size: 36, color: const Color(0xFF4A90D9)),
+                        ),
+                        const SizedBox(height: 36),
+                        Text(
+                          page.title,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 28,
+                            fontWeight: FontWeight.w300,
+                            letterSpacing: -0.5,
+                            height: 1.2,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        Text(
+                          page.subtitle,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(color: Color(0xFF78909C), fontSize: 15, height: 1.7),
+                        ),
+                        if (page.highlight != null) ...[
+                          const SizedBox(height: 24),
+                          Text(page.highlight!, style: const TextStyle(color: Color(0xFF4A90D9), fontSize: 16, fontWeight: FontWeight.w500)),
+                        ],
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(_pages.length, (index) {
+                return AnimatedContainer(
+                  duration: const Duration(milliseconds: 250),
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  width: _currentPage == index ? 20 : 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: _currentPage == index ? const Color(0xFF4A90D9) : const Color(0xFF1E2D3D),
+                    borderRadius: BorderRadius.circular(3),
                   ),
-                if (field?.plantingDate != null)
-                  Text('Planted ${field!.plantingDate}', style: const TextStyle(color: Color(0xFF2A3F55), fontSize: 11)),
-                if (_lastUpdated != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 3),
-                    child: Text(_formatLastUpdated(_lastUpdated!), style: const TextStyle(color: Color(0xFF2A3F55), fontSize: 11)),
+                );
+              }),
+            ),
+            const SizedBox(height: 32),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    if (_currentPage < _pages.length - 1) {
+                      _pageController.nextPage(duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+                    } else {
+                      _completeOnboarding();
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF4A90D9),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-              ],
-            ),
-          ),
-          Row(
-            children: [
-              if (field != null) ...[
-                IconButton(
-                  onPressed: () => _editField(_selectedFieldIndex),
-                  icon: const Icon(Icons.edit_outlined, color: Color(0xFF2A3F55), size: 20),
-                ),
-                IconButton(
-                  onPressed: () => _deleteField(_selectedFieldIndex),
-                  icon: const Icon(Icons.delete_outline, color: Color(0xFF2A3F55), size: 20),
-                ),
-              ],
-              IconButton(
-                onPressed: _isLoading ? null : _loadFieldIntelligence,
-                icon: _isLoading
-                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 1.5, color: Color(0xFF4A90D9)))
-                    : const Icon(Icons.refresh_rounded, color: Color(0xFF2A3F55), size: 22),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFieldTabs() {
-    return SizedBox(
-      height: 34,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        itemCount: _fields.length,
-        itemBuilder: (context, index) {
-          final isSelected = index == _selectedFieldIndex;
-          return GestureDetector(
-            onTap: () => _selectField(index),
-            child: Container(
-              margin: const EdgeInsets.only(right: 8),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-              decoration: BoxDecoration(
-                color: isSelected ? const Color(0xFF4A90D9) : const Color(0xFF1A2535),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                _fields[index].fieldName,
-                style: TextStyle(
-                  color: isSelected ? Colors.white : const Color(0xFF78909C),
-                  fontSize: 13,
-                  fontWeight: isSelected ? FontWeight.w500 : FontWeight.normal,
+                  child: Text(
+                    _currentPage < _pages.length - 1 ? 'Next' : 'Add My First Field',
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                  ),
                 ),
               ),
             ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildBody() {
-    if (_isLoadingFields) {
-      return const Center(child: CircularProgressIndicator(color: Color(0xFF4A90D9), strokeWidth: 1.5));
-    }
-    if (_fields.isEmpty) return _buildEmptyState();
-    if (_isLoading && _intelligence == null) {
-      return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CircularProgressIndicator(color: Color(0xFF4A90D9), strokeWidth: 1.5),
-            SizedBox(height: 16),
-            Text('Reading your field conditions...', style: TextStyle(color: Color(0xFF546E7A), fontSize: 13)),
-          ],
-        ),
-      );
-    }
-    if (_errorMessage != null && _intelligence == null) return _buildErrorState();
-    if (_intelligence == null) return const SizedBox.shrink();
-
-    return RefreshIndicator(
-      onRefresh: _loadFieldIntelligence,
-      color: const Color(0xFF4A90D9),
-      backgroundColor: const Color(0xFF1A2535),
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 4, 16, 120),
-        children: [
-          RecommendationCard(recommendation: _intelligence!.recommendation),
-          const SizedBox(height: 10),
-          RainfallCard(rainfall: _intelligence!.rainfall),
-          const SizedBox(height: 10),
-          ForecastCard(forecast: _intelligence!.forecast),
-          const SizedBox(height: 10),
-          MoistureCard(moisture: _intelligence!.moisture),
-          const SizedBox(height: 20),
-          Text(
-            '${_fields[_selectedFieldIndex].latitude.toStringAsFixed(4)}, ${_fields[_selectedFieldIndex].longitude.toStringAsFixed(4)}',
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: Color(0xFF1E2D3D), fontSize: 11),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEmptyState() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: const Color(0xFF4A90D9).withOpacity(0.1),
-                border: Border.all(color: const Color(0xFF4A90D9).withOpacity(0.2), width: 1),
-              ),
-              child: const Icon(Icons.agriculture_outlined, size: 36, color: Color(0xFF4A90D9)),
-            ),
-            const SizedBox(height: 28),
-            const Text(
-              'Know what to do\nin your field today.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w300, height: 1.2, letterSpacing: -0.5),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Add your field and get a daily operational verdict based on real rainfall data, soil conditions, and your crop.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Color(0xFF546E7A), fontSize: 14, height: 1.6),
-            ),
-            const SizedBox(height: 40),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: _addField,
-                icon: const Icon(Icons.add, color: Colors.white),
-                label: const Text('Add My First Field', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF4A90D9),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Takes less than 60 seconds.\nWe\'ll detect your location automatically.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Color(0xFF2A3F55), fontSize: 12, height: 1.5),
-            ),
+            const SizedBox(height: 32),
           ],
         ),
       ),
     );
   }
+}
 
-  Widget _buildErrorState() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.cloud_off_outlined, size: 40, color: Color(0xFF2A3F55)),
-            const SizedBox(height: 16),
-            Text(_errorMessage!, textAlign: TextAlign.center, style: const TextStyle(color: Color(0xFF546E7A), fontSize: 14, height: 1.5)),
-            const SizedBox(height: 24),
-            TextButton(
-              onPressed: _loadFieldIntelligence,
-              child: const Text('Try Again', style: TextStyle(color: Color(0xFF4A90D9))),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+class _OnboardingPage {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final String? highlight;
+  _OnboardingPage({required this.icon, required this.title, required this.subtitle, this.highlight});
 }
