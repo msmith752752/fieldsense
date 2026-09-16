@@ -4,6 +4,7 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import '../models/field_intelligence.dart';
+import '../services/geocoding_service.dart';
 
 class AddFieldScreen extends StatefulWidget {
   final SavedField? existingField;
@@ -24,6 +25,14 @@ class _AddFieldScreenState extends State<AddFieldScreen> {
   DateTime? _plantingDate;
   bool _isLocating = false;
   bool _locationDetected = false;
+  String? _locationLabel;
+
+  // Manual/search location entry
+  final TextEditingController _searchController = TextEditingController();
+  bool _showLocationSearch = false;
+  bool _isSearching = false;
+  bool _searchedOnce = false;
+  List<GeocodeResult> _searchResults = [];
 
   bool get _isEditing => widget.existingField != null;
 
@@ -40,6 +49,7 @@ class _AddFieldScreenState extends State<AddFieldScreen> {
     _acreageController = TextEditingController(text: f?.acreage?.toString() ?? '');
     _selectedCrop = f?.cropType;
     _selectedSoilType = f?.soilType;
+    _locationLabel = f?.locationLabel;
     if (f?.plantingDate != null) _plantingDate = DateTime.tryParse(f!.plantingDate!);
     if (f != null) _locationDetected = true;
 
@@ -55,6 +65,7 @@ class _AddFieldScreenState extends State<AddFieldScreen> {
     _latController.dispose();
     _lonController.dispose();
     _acreageController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -73,14 +84,44 @@ class _AddFieldScreenState extends State<AddFieldScreen> {
       setState(() {
         _latController.text = position.latitude.toStringAsFixed(6);
         _lonController.text = position.longitude.toStringAsFixed(6);
+        _locationLabel = null; // raw GPS fix — show coordinates, not a place name
         _locationDetected = true;
         _isLocating = false;
+        _showLocationSearch = false;
       });
     } catch (e) {
       _showError('Could not detect location. Enter coordinates manually.');
     } finally {
       setState(() => _isLocating = false);
     }
+  }
+
+  Future<void> _searchLocation() async {
+    final query = _searchController.text.trim();
+    if (query.isEmpty) return;
+    setState(() {
+      _isSearching = true;
+      _searchedOnce = true;
+    });
+    final results = await GeocodingService.search(query);
+    if (!mounted) return;
+    setState(() {
+      _searchResults = results;
+      _isSearching = false;
+    });
+  }
+
+  void _selectSearchResult(GeocodeResult result) {
+    setState(() {
+      _latController.text = result.latitude.toStringAsFixed(6);
+      _lonController.text = result.longitude.toStringAsFixed(6);
+      _locationLabel = result.displayLabel;
+      _locationDetected = true;
+      _showLocationSearch = false;
+      _searchResults = [];
+      _searchController.clear();
+      _searchedOnce = false;
+    });
   }
 
   void _showError(String message) {
@@ -123,6 +164,7 @@ class _AddFieldScreenState extends State<AddFieldScreen> {
         plantingDate: _plantingDate != null
             ? '${_plantingDate!.year}-${_plantingDate!.month.toString().padLeft(2, '0')}-${_plantingDate!.day.toString().padLeft(2, '0')}'
             : null,
+        locationLabel: _locationLabel,
       );
       Navigator.pop(context, field);
     }
@@ -156,7 +198,7 @@ class _AddFieldScreenState extends State<AddFieldScreen> {
               _sectionLabel('YOUR LOCATION'),
               const SizedBox(height: 4),
               const Text(
-                'We detect your location automatically.',
+                'We detect your location automatically, or you can search for the field\'s location instead.',
                 style: TextStyle(color: Color(0xFF546E7A), fontSize: 12),
               ),
               const SizedBox(height: 8),
@@ -188,7 +230,9 @@ class _AddFieldScreenState extends State<AddFieldScreen> {
                       child: Text(
                         _isLocating ? 'Detecting your location...'
                             : _locationDetected
-                                ? 'Location detected — ${_latController.text.isNotEmpty ? "${double.tryParse(_latController.text)?.toStringAsFixed(4) ?? ""}, ${double.tryParse(_lonController.text)?.toStringAsFixed(4) ?? ""}" : ""}'
+                                ? (_locationLabel != null
+                                    ? 'Location set — $_locationLabel'
+                                    : 'Location detected — ${_latController.text.isNotEmpty ? "${double.tryParse(_latController.text)?.toStringAsFixed(4) ?? ""}, ${double.tryParse(_lonController.text)?.toStringAsFixed(4) ?? ""}" : ""}')
                                 : 'Tap to detect location',
                         style: TextStyle(
                           color: _locationDetected ? const Color(0xFF5BA05E) : const Color(0xFF4A90D9),
@@ -205,6 +249,102 @@ class _AddFieldScreenState extends State<AddFieldScreen> {
                   ],
                 ),
               ),
+
+              const SizedBox(height: 8),
+
+              // Toggle: search a different place instead of using GPS
+              GestureDetector(
+                onTap: () => setState(() => _showLocationSearch = !_showLocationSearch),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      _showLocationSearch ? Icons.keyboard_arrow_up : Icons.search,
+                      size: 15,
+                      color: const Color(0xFF4A90D9),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      _showLocationSearch ? 'Hide search' : 'Not at the field? Search a town or county',
+                      style: const TextStyle(color: Color(0xFF4A90D9), fontSize: 12.5, fontWeight: FontWeight.w500),
+                    ),
+                  ],
+                ),
+              ),
+
+              if (_showLocationSearch) ...[
+                const SizedBox(height: 10),
+                Container(
+                  decoration: BoxDecoration(color: const Color(0xFF1A2535), borderRadius: BorderRadius.circular(12)),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _searchController,
+                          textInputAction: TextInputAction.search,
+                          onSubmitted: (_) => _searchLocation(),
+                          style: const TextStyle(color: Colors.white, fontSize: 14),
+                          decoration: const InputDecoration(
+                            hintText: 'e.g. Yadkin County, NC',
+                            hintStyle: TextStyle(color: Color(0xFF546E7A)),
+                            border: InputBorder.none,
+                            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: _isSearching ? null : _searchLocation,
+                        icon: _isSearching
+                            ? const SizedBox(
+                                width: 16, height: 16,
+                                child: CircularProgressIndicator(strokeWidth: 1.5, color: Color(0xFF4A90D9)))
+                            : const Icon(Icons.arrow_forward_rounded, color: Color(0xFF4A90D9)),
+                      ),
+                    ],
+                  ),
+                ),
+                if (_searchResults.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    decoration: BoxDecoration(color: const Color(0xFF1A2535), borderRadius: BorderRadius.circular(12)),
+                    child: Column(
+                      children: _searchResults.asMap().entries.map((entry) {
+                        final i = entry.key;
+                        final r = entry.value;
+                        return Column(
+                          children: [
+                            if (i > 0) _buildDivider(),
+                            InkWell(
+                              onTap: () => _selectSearchResult(r),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.place_outlined, size: 16, color: Color(0xFF546E7A)),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Text(
+                                        r.displayLabel,
+                                        style: const TextStyle(color: Colors.white, fontSize: 13.5),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ] else if (_searchedOnce && !_isSearching) ...[
+                  const SizedBox(height: 8),
+                  const Text(
+                    'No matches. Try a nearby town, or the county and state.',
+                    style: TextStyle(color: Color(0xFF546E7A), fontSize: 12),
+                  ),
+                ],
+              ],
 
               const SizedBox(height: 24),
 

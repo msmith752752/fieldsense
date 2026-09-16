@@ -272,7 +272,8 @@ class _HomeScreenState extends State<HomeScreen> {
           MoistureCard(moisture: _intelligence!.moisture),
           const SizedBox(height: 20),
           Text(
-            '${_fields[_selectedFieldIndex].latitude.toStringAsFixed(4)}, ${_fields[_selectedFieldIndex].longitude.toStringAsFixed(4)}',
+            _fields[_selectedFieldIndex].locationLabel ??
+                '${_fields[_selectedFieldIndex].latitude.toStringAsFixed(4)}, ${_fields[_selectedFieldIndex].longitude.toStringAsFixed(4)}',
             textAlign: TextAlign.center,
             style: const TextStyle(color: Color(0xFF1E2D3D), fontSize: 11),
           ),

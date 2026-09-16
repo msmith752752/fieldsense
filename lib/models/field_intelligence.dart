@@ -292,6 +292,7 @@ class SavedField {
   final double? acreage;
   final String? soilType;
   final String? plantingDate;
+  final String? locationLabel;
 
   SavedField({
     required this.fieldName,
@@ -301,6 +302,7 @@ class SavedField {
     this.acreage,
     this.soilType,
     this.plantingDate,
+    this.locationLabel,
   });
 
   Map<String, dynamic> toJson() => {
@@ -311,6 +313,7 @@ class SavedField {
         'acreage': acreage,
         'soil_type': soilType,
         'planting_date': plantingDate,
+        'location_label': locationLabel,
       };
 
   factory SavedField.fromJson(Map<String, dynamic> json) {
@@ -322,6 +325,7 @@ class SavedField {
       acreage: json['acreage']?.toDouble(),
       soilType: json['soil_type'],
       plantingDate: json['planting_date'],
+      locationLabel: json['location_label'],
     );
   }
 
@@ -345,6 +349,7 @@ class SavedField {
     double? acreage,
     String? soilType,
     String? plantingDate,
+    String? locationLabel,
   }) {
     return SavedField(
       fieldName: fieldName ?? this.fieldName,
@@ -354,6 +359,7 @@ class SavedField {
       acreage: acreage ?? this.acreage,
       soilType: soilType ?? this.soilType,
       plantingDate: plantingDate ?? this.plantingDate,
+      locationLabel: locationLabel ?? this.locationLabel,
     );
   }
 }
